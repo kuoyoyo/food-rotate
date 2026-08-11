@@ -4,6 +4,16 @@ struct RootView: View {
     @State private var rotateModel = RotateViewModel()
     @State private var selectedTab: AppTab = .rotate
     @State private var settings = AppSettings.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// 中選圖示從轉盤飛到結果頁 hero 用的。
+    ///
+    /// 掛在**這裡**而不是 `RotateView`，因為結果頁也得掛在這裡（見下）——
+    /// `matchedGeometryEffect` 的兩端必須在同一個 namespace 底下。
+    @Namespace private var heroNamespace
+
+    /// 結果頁被往下拖了多少（0...1）。壓暗層跟著它回亮。
+    @State private var resultDragProgress: Double = 0
 
     enum AppTab: String, Hashable {
         case rotate, history, settings
@@ -17,10 +27,35 @@ struct RootView: View {
     }
 
     var body: some View {
+        ZStack {
+            tabs
+
+            // 結果頁疊在**分頁列與導覽列之上**。
+            //
+            // 它以前是 `.sheet`，系統會自動蓋掉整個畫面；換成 overlay 之後就得自己
+            // 站在夠上層的地方，掛在 `RotateView` 裡的話分頁列會壓在它上面。
+            if rotateModel.showResult, let winner = rotateModel.winner {
+                resultOverlay(winner: winner)
+            }
+        }
+        .sheet(isPresented: .init(
+            get: { !settings.hasSeenWelcome },
+            set: { if !$0 { settings.hasSeenWelcome = true } }
+        )) {
+            WelcomeView { settings.hasSeenWelcome = true }
+        }
+        #if DEBUG
+        .onAppear {
+            if let tab = AppTab.launchArgument { selectedTab = tab }
+        }
+        #endif
+    }
+
+    private var tabs: some View {
         TabView(selection: $selectedTab) {
             Tab("轉盤", systemImage: "circle.hexagongrid.fill", value: AppTab.rotate) {
                 NavigationStack {
-                    RotateView(model: rotateModel)
+                    RotateView(model: rotateModel, heroNamespace: heroNamespace)
                 }
             }
 
@@ -39,17 +74,52 @@ struct RootView: View {
                 }
             }
         }
-        .sheet(isPresented: .init(
-            get: { !settings.hasSeenWelcome },
-            set: { if !$0 { settings.hasSeenWelcome = true } }
-        )) {
-            WelcomeView { settings.hasSeenWelcome = true }
+    }
+
+    // MARK: - 結果頁
+
+    /// 壓暗層 + 結果頁。
+    ///
+    /// 壓暗層刻意只到 0.55：轉盤還看得見輪廓，使用者知道自己還在轉盤那一頁、
+    /// 結果頁是疊上來的，不是換頁。做到 0.8 以上就變成換頁了。
+    @ViewBuilder
+    private func resultOverlay(winner: FoodItem) -> some View {
+        ZStack(alignment: .bottom) {
+            Theme.Dark.pageBackground
+                // 下拉時跟著回亮，讓人看得出「再拉就會關」。
+                .opacity(0.55 * (1 - resultDragProgress))
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+                // 壓暗層與 sheet 是兩條不同的曲線：它淡入，sheet 由下推入。
+                .transition(.opacity.animation(.easeInOut(duration: 0.22)))
+
+            ResultSheet(
+                winner: winner,
+                phoneNumber: rotateModel.phoneNumber(for: winner),
+                onOpenMaps: { rotateModel.openInMaps(winner) },
+                onCall: { rotateModel.call(winner) },
+                onDismiss: dismissResult,
+                // `reduceMotion` 時不做圖示轉場，hero 直接以 76pt 出現。
+                transition: reduceMotion ? nil : HeroTransition(
+                    namespace: heroNamespace, id: winner.id, isSource: true
+                ),
+                dragProgress: $resultDragProgress
+            )
+            .ignoresSafeArea(edges: .bottom)
+            // 一般是由下推入，`reduceMotion` 時改成淡入。
+            .transition(
+                reduceMotion
+                    ? .opacity.animation(.easeInOut(duration: 0.15))
+                    : .move(edge: .bottom)
+            )
         }
-        #if DEBUG
-        .onAppear {
-            if let tab = AppTab.launchArgument { selectedTab = tab }
+    }
+
+    private func dismissResult() {
+        withAnimation(.easeOut(duration: reduceMotion ? 0.15 : 0.22)) {
+            rotateModel.showResult = false
         }
-        #endif
+        resultDragProgress = 0
     }
 }
 

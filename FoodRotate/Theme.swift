@@ -24,6 +24,12 @@ enum Theme {
         static let card = Color(DesignTokens.Light.card)
         static let text = Color(DesignTokens.Light.text)
         static let hairline = Color(DesignTokens.Light.hairline)
+        static let textSecondary = Color(DesignTokens.Light.textSecondary)
+        static let positive = Color(DesignTokens.Light.positive)
+        static let negative = Color(DesignTokens.Light.negative)
+        static let onSauce = Color(DesignTokens.Light.onSauce)
+        static let sauce = Color(DesignTokens.sauce)
+        static let noticeSurface = Color(DesignTokens.Light.noticeSurface)
     }
 
     enum Dark {
@@ -32,6 +38,13 @@ enum Theme {
         static let text = Color(DesignTokens.Dark.text)
         static let hairline = Color(DesignTokens.Dark.hairline)
         static let sauce = Color(DesignTokens.Dark.sauce)
+        static let textSecondary = Color(DesignTokens.Dark.textSecondary)
+        static let positive = Color(DesignTokens.Dark.positive)
+        static let negative = Color(DesignTokens.Dark.negative)
+        static let grabber = Color(DesignTokens.Dark.grabber)
+        /// 疊在主色上的文字。**深墨不是白** —— 白字只有 3.50，不要改回去。
+        static let onSauce = Color(DesignTokens.Dark.onSauce)
+        static let noticeSurface = Color(DesignTokens.Dark.noticeSurface)
     }
 
     static func pageBackground(for scheme: ColorScheme) -> Color {
@@ -48,6 +61,22 @@ enum Theme {
 
     static func hairline(for scheme: ColorScheme) -> Color {
         scheme == .dark ? Dark.hairline : Light.hairline
+    }
+
+    static func textSecondary(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? Dark.textSecondary : Light.textSecondary
+    }
+
+    static func positive(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? Dark.positive : Light.positive
+    }
+
+    static func negative(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? Dark.negative : Light.negative
+    }
+
+    static func noticeSurface(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? Dark.noticeSurface : Light.noticeSurface
     }
 
     // MARK: - 轉盤
@@ -96,6 +125,8 @@ enum Theme {
 
     static let radiusLarge = CGFloat(DesignTokens.radiusLarge)
     static let radiusSmall = CGFloat(DesignTokens.radiusSmall)
+    static let radiusSheet = CGFloat(DesignTokens.radiusSheet)
+    static let radiusBadge = CGFloat(DesignTokens.radiusBadge)
     static let hairlineWidth = CGFloat(DesignTokens.hairlineWidth)
 
     // MARK: - 間距

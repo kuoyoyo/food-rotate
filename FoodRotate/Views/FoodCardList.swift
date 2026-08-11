@@ -68,6 +68,7 @@ struct FoodCard: View {
     let onCall: () -> Void
     let phoneNumber: String?
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isExpanded = false
     @State private var showNearby = false
     @State private var isRenaming = false
@@ -85,13 +86,13 @@ struct FoodCard: View {
                         // 店家借用同一個型別，`pros` 裡放的是地址。
                         title: item.isPlace ? "地址" : "優點",
                         symbol: "checkmark.circle.fill",
-                        tint: .green,
+                        tint: Theme.positive(for: colorScheme),
                         points: item.pros
                     )
                     pointList(
                         title: "缺點",
                         symbol: "exclamationmark.triangle.fill",
-                        tint: .orange,
+                        tint: Theme.negative(for: colorScheme),
                         points: item.cons
                     )
 

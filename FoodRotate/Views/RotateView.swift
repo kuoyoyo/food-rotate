@@ -240,7 +240,11 @@ final class RotateViewModel {
             Task { [weak self] in
                 try? await Task.sleep(for: .seconds(WheelCelebration.duration))
                 guard let self, self.winner == picked else { return }
-                self.showResult = true
+                // 由下推入。`dampingFraction` 偏高幾乎不回彈 ——
+                // 這是宣告結果的動作，不是彈跳的玩具。
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
+                    self.showResult = true
+                }
             }
         }
     }
@@ -305,7 +309,13 @@ final class RotateViewModel {
 
 struct RotateView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @Bindable var model: RotateViewModel
+
+    /// 中選圖示飛到結果頁 hero 用的 namespace。由 `RootView` 注入 ——
+    /// 結果頁掛在那一層（要蓋過分頁列），兩端必須共用同一個 namespace。
+    let heroNamespace: Namespace.ID
 
     var body: some View {
         ScrollView {
@@ -353,16 +363,6 @@ struct RotateView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle("食物轉盤")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $model.showResult) {
-            if let winner = model.winner {
-                ResultSheet(
-                    winner: winner,
-                    phoneNumber: model.phoneNumber(for: winner),
-                    onOpenMaps: { model.openInMaps(winner) },
-                    onCall: { model.call(winner) }
-                )
-            }
-        }
         #if DEBUG
         // 模擬器無法用指令碼點按，這個啟動參數讓流程能自己轉一次以便截圖驗證。
         .task {
@@ -388,44 +388,37 @@ struct RotateView: View {
 
     @ViewBuilder
     private var statusArea: some View {
+        // 五種提示的互斥順序是既有的優先序，**不要動**。
+        //
+        // 「沒有符合的料理」（`isOverConstrained`）已經移進轉盤區 —— 只有那一種發生時
+        // 轉盤是空的，訊息放在使用者已經在看的地方，而且不必講兩次。
+        // 它從這條 `else if` 鏈裡拿掉了，**但其餘四種的先後沒有跟著改**：
+        // 錯誤仍然最前面，接著改列一般餐廳 → 已放寬 → 只湊得出 N 格。
         if let message = model.errorMessage {
-            NoticeBox(
+            ActionNotice(
                 symbol: "mappin.slash",
-                tint: .orange,
                 title: "找不到附近的店",
                 // 離線也能用的那條路要講出來。使用者現在就想決定吃什麼，
                 // 不該因為定位失敗就整個 App 動不了。
                 message: "\(message)\n\n改用「吃什麼」模式的話不需要網路或定位。"
             )
-        } else if model.isOverConstrained {
-            NoticeBox(
-                symbol: "exclamationmark.triangle.fill",
-                tint: .orange,
-                title: "沒有符合的料理",
-                message: "忌口條件把所有選項都篩掉了。這一項不會自動放寬，請把其中一個忌口取消再試。"
-            )
         } else if model.didFallBackToGeneric {
-            // 「去哪吃」版的放寬提示。跟下面那個「已放寬條件」是同一條產品規則：
+            // 「去哪吃」版的放寬提示。跟下面那個「已放寬」是同一條產品規則：
             // 給了不完全符合的東西就要說出來。
-            NoticeBox(
+            InfoNotice(
                 symbol: "arrow.up.left.and.arrow.down.right",
-                tint: .blue,
-                title: "改列一般餐廳",
-                message: "附近找不到「\(RestaurantSearchTerms.displayName(for: model.searchedCuisines))」的店，改為顯示附近的餐廳。"
+                text: "附近沒有「\(RestaurantSearchTerms.displayName(for: model.searchedCuisines))」的店，改列一般餐廳"
             )
         } else if !model.relaxedDimensions.isEmpty {
-            NoticeBox(
+            // 維度名稱一定要留著 —— 規則要求說明「放寬了哪個維度」。
+            InfoNotice(
                 symbol: "arrow.up.left.and.arrow.down.right",
-                tint: .blue,
-                title: "已放寬條件",
-                message: "完全符合的不夠 \(model.wheelSlots) 道，已放寬「\(model.relaxedDimensions.map(\.rawValue).joined(separator: "、"))」。"
+                text: "不夠 \(model.wheelSlots) 道，已放寬 \(model.relaxedDimensions.map(\.rawValue).joined(separator: "、"))"
             )
         } else if model.isShortOfSlots {
-            NoticeBox(
+            InfoNotice(
                 symbol: "circle.dashed",
-                tint: .blue,
-                title: "只湊得出 \(model.items.count) 格",
-                message: "符合條件的料理不夠 \(model.wheelSlots) 道。可以少選幾個條件，或把格數調低。"
+                text: "只湊得出 \(model.items.count) 格，可以少選條件或調低格數"
             )
         }
     }
@@ -443,7 +436,13 @@ struct RotateView: View {
                         // 從 winner 反查格號，而不是在 model 裡再存一份索引：
                         // 兩份狀態就會有對不上的那一天（改名、刪卡片都會動到清單）。
                         winnerIndex: model.winner.flatMap { model.items.firstIndex(of: $0) },
-                        onSpin: { model.spin(saveTo: modelContext) }
+                        onSpin: { model.spin(saveTo: modelContext) },
+                        transition: reduceMotion ? nil : HeroTransition(
+                            namespace: heroNamespace,
+                            id: model.winner?.id ?? "",
+                            // 結果頁開了就讓位給 hero。
+                            isSource: !model.showResult
+                        )
                     )
                 }
 
@@ -472,16 +471,28 @@ struct RotateView: View {
         }
     }
 
+    @ViewBuilder
     private var emptyHint: some View {
-        VStack(spacing: 8) {
-            Image(systemName: model.source.symbolName)
-                .font(.system(size: 36))
-                .foregroundStyle(.secondary)
-            Text(model.errorMessage == nil ? "換個條件再試試" : "上面的按鈕可以再試一次")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        if model.isOverConstrained {
+            // 忌口把選項全篩光了。這一種提示只在轉盤是空的時候發生，所以講在這裡就好 ——
+            // 以前上面出一張卡片、下面又寫一句「換個條件再試試」，同一件事講了兩次。
+            ActionNotice(
+                symbol: "exclamationmark.triangle.fill",
+                title: "沒有符合的料理",
+                message: "忌口條件把所有選項都篩掉了。這一項不會自動放寬，請把其中一個忌口取消再試。"
+            )
+            .padding(.horizontal, Theme.space16)
+        } else {
+            VStack(spacing: Theme.space8) {
+                Image(systemName: model.source.symbolName)
+                    .font(.system(size: 36))
+                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                Text(model.errorMessage == nil ? "換個條件再試試" : "上面的按鈕可以再試一次")
+                    .font(Theme.subheadline)
+                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+            }
+            .allowsHitTesting(false)
         }
-        .allowsHitTesting(false)
     }
 
     /// 搜尋附近店家時的載入區塊。
@@ -508,31 +519,5 @@ struct RotateView: View {
         .padding(24)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
         .animation(.default, value: model.stage)
-    }
-}
-
-/// 錯誤與提示共用的小卡片。
-struct NoticeBox: View {
-    let symbol: String
-    let tint: Color
-    let title: String
-    let message: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: symbol)
-                .foregroundStyle(tint)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(12)
-        .background(tint.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
     }
 }

@@ -53,6 +53,25 @@ enum DesignTokens {
         /// 分層用的髮絲線。**給實色不給透明度**：透明度會隨底層疊加而漂移，
         /// 卡片疊在頁底上跟疊在 sheet 上會變成兩個顏色。
         static let hairline = RGB(0xDAD7D0)
+
+        /// 次要文字（「今天就吃」、版權）。on 卡片 5.14 ／ on 頁底 4.67。
+        static let textSecondary = RGB(0x6C6761)
+        /// 優點綠。on 卡片 5.67。
+        static let positive = RGB(0x3F6B45)
+        /// 缺點橘。on 卡片 5.59。
+        static let negative = RGB(0x8F5418)
+        /// 疊在主色上的文字（主要按鈕）。on `sauce` 6.31。
+        static let onSauce = RGB(0xF8F5EE)
+
+        /// 「要行動」那類提示卡的底色。`negative` 6% 疊頁底的等值實色。
+        ///
+        /// **6% 是被對比逼出來的，不是挑好看的**：染色會把底壓暗，
+        /// 深橘標題的對比跟著掉 —— 8% 就是上限（4.57），10% 只剩 4.45 不合格。
+        /// 取 6% 留餘裕（4.69）。
+        ///
+        /// 這個底跟頁底只差 1.08，光靠底色看不出是一張卡，所以淺色的提示卡
+        /// **必須**再加一條 1px 髮絲線邊框。
+        static let noticeSurface = RGB(0xE9E1D4)
     }
 
     enum Dark {
@@ -60,6 +79,29 @@ enum DesignTokens {
         static let card = RGB(0x23201B)
         static let text = RGB(0xEFE9DE)
         static let hairline = RGB(0x3B3832)
+
+        /// 次要文字。on 卡片 6.62 ／ on 頁底 7.28。
+        static let textSecondary = RGB(0xAAA59C)
+        /// 優點綠。on 卡片 8.38。
+        static let positive = RGB(0x8CC98A)
+        /// 缺點橘。on 卡片 8.46。
+        static let negative = RGB(0xEFAE6E)
+        /// 結果頁頂端的把手。= `text` 34% 疊在頁底上的等值實色。
+        static let grabber = RGB(0x625E59)
+
+        /// 疊在主色上的文字（主要按鈕）。
+        ///
+        /// **是深墨不是白。** 白字疊在 `sauce` `#D9674F` 上只有 3.50，不合格；
+        /// 深墨是 5.10。深色模式把主色提亮是為了在深底上浮起來，但提亮的同時
+        /// 也把「能配白字」這個前提拿掉了 —— 「淺色配深字、深色配淺字」的直覺
+        /// 在這裡會反過來。
+        ///
+        /// **這是整份規格最容易被下一個人「順手修正」回白字的一項，不要改。**
+        static let onSauce = RGB(0x1A1714)
+
+        /// 「要行動」那類提示卡的底色。`negative` 10% 疊頁底的等值實色。
+        /// 深色這邊跟頁底差 1.20，看得出是一張卡，不需要邊框。
+        static let noticeSurface = RGB(0x2F261D)
 
         /// 深色模式的主色。
         ///
@@ -219,6 +261,13 @@ enum DesignTokens {
     // 叫 `radiusCard` 反而會讓「提示框為什麼用卡片的圓角」變成需要解釋的事。
     static let radiusLarge: Double = 10
     static let radiusSmall: Double = 8
+
+    /// 結果頁上緣。比 `radiusLarge` 大很多，因為那是整個畫面寬度的表面邊緣，
+    /// 10 在那個尺度上看起來像沒做圓角。
+    static let radiusSheet: Double = 20
+
+    /// 角標。`radiusSmall` 8 對 16pt 高的元素太圓了。
+    static let radiusBadge: Double = 4
 
     /// 分層用的髮絲線寬度。顏色見 `Light.hairline` / `Dark.hairline`。
     static let hairlineWidth: Double = 1

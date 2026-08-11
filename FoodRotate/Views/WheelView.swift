@@ -125,6 +125,23 @@ enum WheelCelebration {
     static let fadeHub = Animation.easeOut(duration: 0.15)
 }
 
+/// 中選圖示從轉盤飛到結果頁 hero 的兩端。
+///
+/// `isSource` 要跟著結果頁的開關切換。`matchedGeometryEffect` 的規則是
+/// **同一個 id 底下只有 source 那一端定義幾何，其他端跟著它跑**；
+/// 而這裡兩端會同時存在（結果頁只壓暗 0.55，轉盤還在後面看得見），
+/// 所以誰是 source 必須明講：
+///
+/// - 結果頁還沒開：轉盤那顆是 source，hero 還不存在
+/// - 結果頁開了：hero 變成 source，轉盤那顆讓位並隱藏
+///
+/// 不切換的話 hero 會被永遠釘在轉盤那一格的框上，跟菜名疊在一起。
+struct HeroTransition {
+    let namespace: Namespace.ID
+    let id: String
+    let isSource: Bool
+}
+
 // MARK: - 轉盤
 
 struct WheelView: View {
@@ -134,6 +151,13 @@ struct WheelView: View {
     /// 中選的是第幾格。`nil` 代表還沒轉出結果（或條件改了、結果作廢）。
     let winnerIndex: Int?
     let onSpin: () -> Void
+
+    /// 中選圖示要飛到結果頁的話，這裡給 namespace 與 id。`nil` 代表不做轉場。
+    ///
+    /// **`Canvas` 畫的東西不能參與 `matchedGeometryEffect`** —— 它需要一個真的 view。
+    /// 所以中選那一格的圖示會改由一個實際的 `Image` 疊在同樣的位置上畫，
+    /// Canvas 那邊則跳過不畫，避免同一個圖示出現兩份。
+    var transition: HeroTransition?
 
     /// 深淺兩底的八色是兩組不同的值（不是同一組調透明度），所以要知道現在是哪一邊。
     @Environment(\.colorScheme) private var colorScheme
@@ -169,6 +193,14 @@ struct WheelView: View {
             let side = min(geo.size.width, geo.size.height)
             ZStack {
                 rotatingWheel(side: side)
+
+                // 中選格的圖示改用真的 view 畫，這樣它才飛得到結果頁。
+                //
+                // 放在旋轉容器**外面**，位置自己算 —— 因為圖示本來就恆正立
+                // （S2 的決定），不需要跟著轉，這裡剛好省掉一次反向抵消。
+                if let transition, let index = matchedIconIndex {
+                    matchedIcon(side: side, index: index, transition: transition)
+                }
 
                 // 沒有候選清單時不畫中心鈕，否則會跟「先在上面說想吃什麼」的提示疊在一起。
                 // 中選之後把它淡掉：結果已經出來了，那顆鈕不再是使用者要看的東西。
@@ -227,6 +259,47 @@ struct WheelView: View {
         .animation(nil, value: angle)
     }
 
+    /// 哪一格的圖示由真的 view 畫（而不是 Canvas）。
+    private var matchedIconIndex: Int? {
+        guard transition != nil, let winnerIndex, items.indices.contains(winnerIndex) else { return nil }
+        return winnerIndex
+    }
+
+    /// 中選格的圖示，畫成真的 view 好讓它參與 `matchedGeometryEffect`。
+    ///
+    /// 位置要跟 Canvas 裡那一份**完全一致**，否則轉場起點會偏。
+    /// Canvas 那邊是「先轉 drawAngle 再往 x 走 r×ratio」，換算成不旋轉的座標
+    /// 就是往 `midAngle + 轉盤角度` 這個方向走同樣的距離 —— 左右半邊的鏡射相消，
+    /// 兩邊得到的是同一個點。
+    private func matchedIcon(
+        side: CGFloat,
+        index: Int,
+        transition: HeroTransition
+    ) -> some View {
+        let radius = side / 2 - 6
+        let metrics = metrics
+        let segment = 360.0 / Double(items.count)
+        let midAngle = Double(index) * segment - 90 + segment / 2
+        let radians = (midAngle + angle) * .pi / 180
+        let distance = radius * metrics.iconRadiusRatio
+        let size = metrics.iconSize * radius / WheelLabel.referenceRadius
+
+        return Image(items[index].icon.assetName)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .foregroundStyle(slots[index % slots.count].ink)
+            .matchedGeometryEffect(
+                id: transition.id, in: transition.namespace, isSource: transition.isSource
+            )
+            // 結果頁開了之後 hero 接手當 source，這一顆讓位並隱藏 ——
+            // 留著會變成一顆貼在 hero 上的重複圖示。
+            .opacity(transition.isSource ? 1 : 0)
+            .offset(x: distance * cos(radians), y: distance * sin(radians))
+            .allowsHitTesting(false)
+    }
+
     /// 中選格放大到幾倍。開了「減少動態效果」就不放大，只靠描邊加粗來標示。
     private var winnerScale: Double {
         guard !reduceMotion else { return 1 }
@@ -244,6 +317,7 @@ struct WheelView: View {
         let slots = slots
         let metrics = metrics
         let items = items
+        let matchedIcon = matchedIconIndex
 
         return Canvas { context, size in
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
@@ -299,7 +373,10 @@ struct WheelView: View {
                     radius: radius,
                     midAngle: start + segment / 2,
                     metrics: metrics,
-                    scale: scale
+                    scale: scale,
+                    // 中選格的圖示改由真的 view 畫（轉場要用），這裡跳過不畫，
+                    // 否則同一個位置會有兩份圖示疊著。
+                    drawsIcon: index != matchedIcon
                 )
             }
 
@@ -332,7 +409,8 @@ struct WheelView: View {
         radius: CGFloat,
         midAngle: Double,
         metrics: WheelLabel.Metrics,
-        scale: CGFloat
+        scale: CGFloat,
+        drawsIcon: Bool
     ) {
         var normalized = midAngle.truncatingRemainder(dividingBy: 360)
         if normalized < 0 { normalized += 360 }
@@ -353,16 +431,18 @@ struct WheelView: View {
         // 要抵消的是**兩層**旋轉：這一格的 `drawAngle`，以及整個轉盤外層的 `angle`。
         // 而且全程抵消，不是只在停下來時轉正 —— 後者會在停止瞬間跳一下。
         // 轉動中每秒一點多圈，圖示相對盤面的自轉根本看不出來。
-        var iconLayer = layer
-        iconLayer.translateBy(x: side * radius * metrics.iconRadiusRatio, y: 0)
-        iconLayer.rotate(by: .degrees(-(drawAngle + angle)))
-        drawIcon(
-            for: item,
-            ink: ink,
-            in: context,
-            layer: &iconLayer,
-            size: metrics.iconSize * scale
-        )
+        if drawsIcon {
+            var iconLayer = layer
+            iconLayer.translateBy(x: side * radius * metrics.iconRadiusRatio, y: 0)
+            iconLayer.rotate(by: .degrees(-(drawAngle + angle)))
+            drawIcon(
+                for: item,
+                ink: ink,
+                in: context,
+                layer: &iconLayer,
+                size: metrics.iconSize * scale
+            )
+        }
 
         // 菜名。一到兩行，永遠不截斷。
         let fontSize = max(WheelLabel.minimumFontSize, metrics.fontSize * scale)
