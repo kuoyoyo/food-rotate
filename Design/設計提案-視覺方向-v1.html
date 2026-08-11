@@ -1,0 +1,1236 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>食物轉盤 — 視覺方向提案 v1</title>
+<style>
+  /* Artifact 平台會注入一份最小 reset，本機版自己補等效的部分 */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9em; }
+</style>
+</head>
+<body>
+<style>
+/* ============================================================
+   色票樣張 — 本文件本身刻意維持單色。
+   所有顏色都由三個提案方向自己提供，避免文件的調性干擾判斷。
+   ============================================================ */
+
+:root {
+  --paper:      #E7E6DF;
+  --surface:    #F2F1EB;
+  --surface-2:  #DDDCD4;
+  --ink:        #191A16;
+  --ink-mid:    #55574E;
+  --ink-soft:   #7E8077;
+  --rule:       #C7C6BD;
+  --rule-soft:  #D6D5CC;
+
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  --sans: "PingFang TC", "Noto Sans TC", "Hiragino Sans TC", system-ui, sans-serif;
+
+  --gut: clamp(1.25rem, 4vw, 3rem);
+  --rail: 8.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:     #141512;
+    --surface:   #1C1E19;
+    --surface-2: #26281F;
+    --ink:       #E5E4DB;
+    --ink-mid:   #9B9D92;
+    --ink-soft:  #75776D;
+    --rule:      #33352E;
+    --rule-soft: #2A2C25;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper:     #141512;
+  --surface:   #1C1E19;
+  --surface-2: #26281F;
+  --ink:       #E5E4DB;
+  --ink-mid:   #9B9D92;
+  --ink-soft:  #75776D;
+  --rule:      #33352E;
+  --rule-soft: #2A2C25;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 0 var(--gut) 6rem;
+}
+
+/* ---------- 標題區 ---------- */
+
+.masthead {
+  border-bottom: 1.5px solid var(--ink);
+  padding: clamp(2.5rem, 7vw, 5rem) 0 1.5rem;
+  display: grid;
+  gap: 2rem;
+}
+
+.stamp {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  color: var(--ink-soft);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.75rem;
+}
+
+.masthead h1 {
+  font-size: clamp(2.4rem, 7.5vw, 5rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.masthead h1 em {
+  font-style: normal;
+  color: var(--ink-soft);
+}
+
+.dek {
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  color: var(--ink-mid);
+  max-width: 40ch;
+  margin: 0;
+  line-height: 1.7;
+}
+
+/* ---------- 區段骨架：左標籤欄 + 內容欄 ---------- */
+
+section {
+  padding-top: clamp(3.5rem, 8vw, 6rem);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  gap: 0 2.5rem;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .row { grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
+}
+
+.label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  color: var(--ink-soft);
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--ink);
+  position: sticky;
+  top: 1.5rem;
+}
+
+@media (max-width: 800px) {
+  .label { position: static; }
+}
+
+.body-col > * + * { margin-top: 1.1rem; }
+
+h2 {
+  font-size: clamp(1.6rem, 3.6vw, 2.4rem);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  text-wrap: balance;
+}
+
+h3 {
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+p { margin: 0; max-width: 62ch; color: var(--ink-mid); }
+p strong { color: var(--ink); font-weight: 600; }
+
+/* ---------- 數據 ---------- */
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  margin-top: 2rem;
+}
+
+.fig {
+  background: var(--paper);
+  padding: 1.4rem 1.25rem 1.5rem;
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+}
+
+.fig b {
+  font-family: var(--mono);
+  font-size: clamp(2rem, 5vw, 2.9rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.fig span {
+  font-size: 0.86rem;
+  color: var(--ink-mid);
+  line-height: 1.6;
+}
+
+.fig small {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+}
+
+/* ---------- 前後對照 ---------- */
+
+.compare {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1.75rem;
+  margin-top: 2rem;
+}
+
+.compare figure { margin: 0; display: grid; gap: 0.85rem; justify-items: center; }
+.compare figcaption {
+  font-size: 0.84rem;
+  color: var(--ink-mid);
+  text-align: center;
+  max-width: 30ch;
+  line-height: 1.6;
+}
+.compare figcaption b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  color: var(--ink-soft);
+  font-weight: 400;
+  margin-bottom: 0.3rem;
+}
+
+.demo-wheel {
+  width: min(19rem, 74vw);
+  aspect-ratio: 1;
+  display: block;
+}
+
+/* ---------- 痛點清單 ---------- */
+
+.issues { display: grid; gap: 1px; background: var(--rule); border-block: 1px solid var(--rule); margin-top: 2rem; }
+.issue {
+  background: var(--paper);
+  display: grid;
+  grid-template-columns: 3.4rem minmax(0, 1fr);
+  gap: 1.25rem;
+  padding: 1.1rem 0;
+  align-items: baseline;
+}
+.issue > i {
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 0.1rem 0.4rem;
+  justify-self: start;
+}
+.issue p { margin-top: 0.2rem; font-size: 0.92rem; }
+
+/* ============================================================
+   方向卡：唯一有顏色的地方。
+   每個方向只在 wrapper 上覆寫變數，元件樣式共用一份。
+   ============================================================ */
+
+.dir {
+  margin-top: 2.5rem;
+  border: 1.5px solid var(--ink);
+}
+
+.dir-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1.25rem;
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.dir-head .no {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  color: var(--ink-soft);
+}
+
+.dir-head h3 { font-size: clamp(1.3rem, 3vw, 1.75rem); letter-spacing: -0.02em; }
+.dir-head .tag {
+  font-size: 0.8rem;
+  color: var(--ink-mid);
+  margin-left: auto;
+}
+
+.dir-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 1px;
+  background: var(--rule);
+}
+
+@media (max-width: 860px) {
+  .dir-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.pane { background: var(--paper); padding: 1.6rem 1.4rem; display: grid; gap: 1.2rem; align-content: start; }
+
+.pane-title {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.15em;
+  color: var(--ink-soft);
+}
+
+.stance { font-size: 0.95rem; color: var(--ink-mid); max-width: 46ch; line-height: 1.7; }
+
+/* 色票 */
+.swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.sw { background: var(--paper); padding: 0.7rem 0.75rem 0.8rem; display: grid; gap: 0.45rem; }
+.sw .chip { height: 2.6rem; border: 1px solid rgba(0,0,0,0.14); }
+.sw .nm { font-size: 0.78rem; color: var(--ink); line-height: 1.3; }
+.sw .hx { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.06em; color: var(--ink-soft); }
+
+/* 轉盤色帶（同時看淺底與深底） */
+.ramp-set { display: grid; gap: 0.55rem; }
+.ramp {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+  padding: 0.55rem;
+  border: 1px solid var(--rule);
+}
+.ramp i { display: block; height: 2.1rem; font-style: normal; }
+.ramp-note { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.1em; color: var(--ink-soft); }
+
+/* 規格表 */
+.spec { display: grid; gap: 0.4rem; font-size: 0.85rem; }
+.spec div { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: 0.9rem; align-items: baseline; }
+.spec dt, .spec b {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+.spec span { color: var(--ink-mid); line-height: 1.6; }
+
+/* ---------- 手機模擬 ---------- */
+
+.mock-pane { background: var(--paper); padding: 1.6rem 1.4rem 2rem; display: grid; gap: 1.1rem; justify-items: center; }
+
+.phone {
+  --b: var(--m-bg);
+  width: min(17.5rem, 78vw);
+  aspect-ratio: 9 / 17.4;
+  background: var(--m-bg);
+  border: 9px solid var(--m-frame);
+  border-radius: 2.4rem;
+  padding: 0.55rem 0.7rem;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  gap: 0.55rem;
+  overflow: hidden;
+  box-shadow: 0 12px 30px -12px rgba(0,0,0,0.45);
+  font-size: 0.62rem;
+  color: var(--m-ink);
+}
+
+.m-nav { text-align: center; font-weight: 600; font-size: 0.72rem; padding-top: 0.35rem; letter-spacing: -0.01em; }
+
+.m-seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--m-seg);
+  border-radius: 999px;
+  padding: 2px;
+  gap: 2px;
+}
+.m-seg span { text-align: center; padding: 0.28rem 0; border-radius: 999px; color: var(--m-ink-soft); }
+.m-seg span.on { background: var(--m-seg-on); color: var(--m-seg-on-ink); font-weight: 600; box-shadow: var(--m-seg-shadow); }
+
+.m-filter { display: flex; gap: 0.35rem; align-items: center; }
+.m-cap {
+  padding: 0.26rem 0.6rem;
+  border-radius: 999px;
+  background: var(--m-brand-soft);
+  color: var(--m-brand);
+  font-weight: 600;
+}
+.m-cap-2 {
+  padding: 0.26rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--m-hair);
+  color: var(--m-ink-soft);
+  margin-left: auto;
+}
+
+.m-wheel { display: grid; place-items: center; align-content: center; gap: 0.5rem; min-height: 0; }
+.m-wheel svg { width: 88%; height: auto; }
+
+.m-btn {
+  background: var(--m-brand);
+  color: var(--m-brand-ink);
+  border-radius: 999px;
+  text-align: center;
+  padding: 0.42rem;
+  font-weight: 600;
+  box-shadow: var(--m-btn-shadow);
+}
+
+.m-card {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--m-card);
+  border: 1px solid var(--m-hair);
+  border-radius: 0.7rem;
+  padding: 0.4rem 0.55rem;
+}
+.m-card .dot { width: 1.35rem; height: 1.35rem; border-radius: 50%; background: var(--m-brand-soft); display: grid; place-items: center; font-size: 0.65rem; }
+.m-card .nm { font-weight: 600; }
+.m-card .sub { color: var(--m-ink-soft); margin-left: auto; }
+
+.mock-note { font-size: 0.8rem; color: var(--ink-mid); text-align: center; max-width: 34ch; line-height: 1.6; }
+
+/* ---- 三個方向的變數 ---- */
+
+.dir-a {
+  --m-bg: #FBF7F3; --m-frame: #D8D2CB; --m-ink: #2B1F19; --m-ink-soft: #8A7A70;
+  --m-seg: #ECE4DC; --m-seg-on: #FFFFFF; --m-seg-on-ink: #2B1F19; --m-seg-shadow: 0 1px 2px rgba(0,0,0,.18);
+  --m-brand: #E0542B; --m-brand-ink: #FFFFFF; --m-brand-soft: #FBE2D6;
+  --m-card: #FFFFFF; --m-hair: #E5DBD2;
+  --m-btn-shadow: 0 3px 8px -3px rgba(224,84,43,.6);
+}
+
+.dir-b {
+  --m-bg: #EFEAE0; --m-frame: #CFC7B8; --m-ink: #241E18; --m-ink-soft: #857A6B;
+  --m-seg: #E1DACC; --m-seg-on: #F8F5EE; --m-seg-on-ink: #241E18; --m-seg-shadow: 0 1px 2px rgba(0,0,0,.14);
+  --m-brand: #9B3B2C; --m-brand-ink: #F8F5EE; --m-brand-soft: #E5D6CB;
+  --m-card: #F8F5EE; --m-hair: #DCD3C3;
+  --m-btn-shadow: none;
+}
+
+.dir-c {
+  --m-bg: #131011; --m-frame: #2A2426; --m-ink: #F2EAE4; --m-ink-soft: #8A7F7C;
+  --m-seg: #241E20; --m-seg-on: #3A3134; --m-seg-on-ink: #FFE9DF; --m-seg-shadow: none;
+  --m-brand: #FF5A1F; --m-brand-ink: #16100C; --m-brand-soft: #3A2118;
+  --m-card: #1D1819; --m-hair: #2E2729;
+  --m-btn-shadow: 0 0 18px -2px rgba(255,90,31,.55);
+}
+
+/* ---------- 決策回覆 ---------- */
+
+.answers { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-top: 2rem; }
+.ans { background: var(--paper); padding: 1.4rem 1.4rem 1.6rem; display: grid; gap: 0.6rem; }
+.ans .q {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.13em;
+  color: var(--ink-soft);
+}
+.ans h4 { margin: 0; font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; }
+.ans .verdict {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--ink);
+  padding: 0.1rem 0.5rem;
+  justify-self: start;
+}
+.ans p { font-size: 0.92rem; }
+
+/* ---------- 排程 ---------- */
+
+.steps { display: grid; gap: 1px; background: var(--rule); border-block: 1px solid var(--rule); margin-top: 2rem; }
+.step {
+  background: var(--paper);
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  padding: 1.15rem 0;
+  align-items: baseline;
+}
+.step > i {
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.step .scope {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.step p { font-size: 0.9rem; margin-top: 0.2rem; }
+
+@media (max-width: 640px) {
+  .step { grid-template-columns: 2.6rem minmax(0, 1fr); }
+  .step .scope { grid-column: 2; }
+}
+
+/* ---------- 收尾 ---------- */
+
+.closing {
+  margin-top: clamp(3.5rem, 8vw, 6rem);
+  border-top: 1.5px solid var(--ink);
+  padding-top: 1.5rem;
+  display: grid;
+  gap: 0.75rem;
+}
+.closing p { max-width: 54ch; }
+.closing .sig { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.14em; color: var(--ink-soft); }
+
+.note {
+  border-left: 2px solid var(--ink);
+  padding-left: 1rem;
+  font-size: 0.9rem;
+}
+
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="stamp">
+      <span>食物轉盤 FOOD ROTATE</span>
+      <span>視覺方向提案 v1</span>
+      <span>2026-08-11</span>
+      <span>設計 → PM</span>
+    </div>
+    <h1>三個方向<em>，</em><br>一組共用的地基<em>。</em></h1>
+    <p class="dek">
+      這份文件回應〈專案現況彙整-給設計師〉第八節的五個決策問題，並提出三個可選的視覺方向。
+      文件本身刻意維持單色 —— 所有顏色都由提案自己提供，才不會用版面的調性去影響判斷。
+    </p>
+  </header>
+
+  <!-- ============ 診斷 ============ -->
+  <section>
+    <div class="row">
+      <div class="label">01 — 診斷</div>
+      <div class="body-col">
+        <h2>先確認一件事：現在的問題不是「不好看」，是資訊被丟掉了。</h2>
+        <p>
+          PM 列的 P0「轉盤菜名截斷」和 P1「全靠 emoji」看起來是兩個獨立的美術問題。
+          我把 <code>foods.json</code> 的 50 筆資料跑過一遍之後，發現它們其實是同一個問題的兩半：
+          <strong>轉盤上的每一格，目前同時失去了名字和圖像的辨識度。</strong>
+        </p>
+
+        <div class="figures">
+          <div class="fig">
+            <small>EMOJI 覆蓋率</small>
+            <b>23<span style="font-size:.42em;letter-spacing:0;color:var(--ink-soft)"> / 50</span></b>
+            <span>50 道菜只用到 23 個不重複的 emoji。<br>🍜 一個符號要代表 7 道不同的麵。</span>
+          </div>
+          <div class="fig">
+            <small>8 格轉盤</small>
+            <b>77.2%</b>
+            <span>隨機抽 8 道時，盤上至少出現一組<br>重複 emoji 的機率（2 萬次模擬）。</span>
+          </div>
+          <div class="fig">
+            <small>12 格轉盤</small>
+            <b>97.3%</b>
+            <span>格數開到最大時幾乎必然撞圖。<br>圖像在這裡等於沒有作用。</span>
+          </div>
+          <div class="fig">
+            <small>名稱截斷</small>
+            <b>10<span style="font-size:.42em;letter-spacing:0;color:var(--ink-soft)"> / 50</span></b>
+            <span>超過 5 字、會被切成「4 字…」的菜名。<br>五分之一的資料庫讀不完整。</span>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:2rem">
+          <p>
+            最糟的組合是使用者選了單一菜系的時候。韓式只有 5 道，其中
+            <strong>石鍋拌飯、泡菜豆腐鍋、人參雞湯三道共用 🍲</strong>，而前兩道又都超過 5 字會被截斷。
+            這時候盤上有三格長得幾乎一樣 —— 轉盤失去了「看得到自己在選什麼」這個功能。
+          </p>
+        </div>
+
+        <h3 style="margin-top:2.5rem">截斷是排版問題，不需要犧牲資料</h3>
+        <p>
+          資料庫裡最長的菜名是 7 個字（西班牙海鮮燉飯、韓式泡菜豆腐鍋）。
+          扇形沿半徑方向排一行放不下，但<strong>排兩行、每行 4 字就有 8 字的容量</strong> ——
+          也就是說「零截斷」在 4 到 12 格全部做得到，只是要讓字級隨格數浮動。
+        </p>
+
+        <div class="compare">
+          <figure>
+            <svg class="demo-wheel" id="w-before" viewBox="0 0 320 320" role="img" aria-label="現況轉盤：菜名被截斷成四個字加省略號"></svg>
+            <figcaption><b>現況</b>單行、5 字以上截斷。三組重複 emoji，兩格讀不出是什麼。</figcaption>
+          </figure>
+          <figure>
+            <svg class="demo-wheel" id="w-after" viewBox="0 0 320 320" role="img" aria-label="修正後轉盤：菜名完整分成兩行顯示"></svg>
+            <figcaption><b>修正後</b>兩行 + 動態字級，菜名完整。圖像改為菜系／形態圖示，不再撞圖。</figcaption>
+          </figure>
+        </div>
+
+        <p style="margin-top:2rem">
+          這一項跟選哪個視覺方向無關，三個方向都會做。放在最前面是因為它是<strong>功能性的修復</strong>，
+          不是風格選擇。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 方向 ============ -->
+  <section>
+    <div class="row">
+      <div class="label">02 — 方向</div>
+      <div class="body-col">
+        <h2>三個方向，變數只有一個：這個 App 想給人什麼感覺。</h2>
+        <p>
+          三張模擬圖的版面、字級、間距、圓角全部相同，連轉盤上的八道菜都是同一組。
+          唯一的差別是色彩與質感，這樣比較才有意義。每個方向都附「深色底」的色帶 ——
+          PM 文件裡 P2 提到深色模式沒有逐頁驗過，色盤能不能撐住深色底應該現在就看，不是做完才發現。
+        </p>
+
+        <!-- 方向 A -->
+        <article class="dir dir-a">
+          <div class="dir-head">
+            <span class="no">方向 A</span>
+            <h3>亮食</h3>
+            <span class="tag">現況精緻化 · 改動最小</span>
+          </div>
+          <div class="dir-grid">
+            <div class="pane">
+              <div class="pane-title">立場</div>
+              <p class="stance">
+                不換調性，把現在的橘留著，但把八色盤重新排到同一條飽和度與明度曲線上。
+                現在的盤色是一格一格各自調出來的，橘 <code>#FCB84D</code> 和黃 <code>#E6A16B</code>
+                太接近，轉起來會糊在一起。重排之後色相間距均等，相鄰兩格永遠拉得開。
+              </p>
+
+              <div class="pane-title">色票</div>
+              <div class="swatches">
+                <div class="sw"><span class="chip" style="background:#E0542B"></span><span class="nm">主色</span><span class="hx">#E0542B</span></div>
+                <div class="sw"><span class="chip" style="background:#FBF7F3"></span><span class="nm">頁面底</span><span class="hx">#FBF7F3</span></div>
+                <div class="sw"><span class="chip" style="background:#FFFFFF"></span><span class="nm">卡片</span><span class="hx">#FFFFFF</span></div>
+                <div class="sw"><span class="chip" style="background:#2B1F19"></span><span class="nm">文字</span><span class="hx">#2B1F19</span></div>
+              </div>
+
+              <div class="pane-title">轉盤八色</div>
+              <div class="ramp-set">
+                <div class="ramp" id="ramp-a-l"></div>
+                <div class="ramp-note">淺底 · S 68% L 58% 等距色相</div>
+                <div class="ramp" id="ramp-a-d" style="background:#141210"></div>
+                <div class="ramp-note">深底 · 明度 +6% 補償</div>
+              </div>
+
+              <div class="pane-title">規格</div>
+              <div class="spec">
+                <div><b>字體</b><span>系統字。標題 semibold、轉盤數字 rounded</span></div>
+                <div><b>圓角</b><span>卡片 14 · 提示 12 · 按鈕膠囊</span></div>
+                <div><b>陰影</b><span>保留，主色按鈕帶淡色投影</span></div>
+                <div><b>風險</b><span>低。多數畫面只換 token 就完成</span></div>
+              </div>
+            </div>
+            <div class="mock-pane">
+              <div class="phone" aria-label="方向 A 主畫面模擬">
+                <div class="m-nav">食物轉盤</div>
+                <div class="m-seg"><span class="on">吃什麼</span><span>去哪吃</span></div>
+                <div class="m-filter"><span class="m-cap">台式・便宜</span><span class="m-cap-2">換一組</span></div>
+                <div class="m-wheel"><svg viewBox="0 0 320 320" data-wheel="a" role="img" aria-label="方向 A 配色的轉盤"></svg></div>
+                <div>
+                  <div class="m-btn">開始轉</div>
+                  <div class="m-card" style="margin-top:.45rem"><span class="dot">🍜</span><span class="nm">牛肉麵</span><span class="sub">台式</span></div>
+                </div>
+              </div>
+              <p class="mock-note">保守但可靠。使用者不會察覺換了設計，只會覺得比較清楚。</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- 方向 B -->
+        <article class="dir dir-b">
+          <div class="dir-head">
+            <span class="no">方向 B</span>
+            <h3>灶</h3>
+            <span class="tag">食材色系 · 菜單感</span>
+          </div>
+          <div class="dir-grid">
+            <div class="pane">
+              <div class="pane-title">立場</div>
+              <p class="stance">
+                把整盤的飽和度壓下來，八個顏色全部取自真實食材 —— 醬色、蛋黃、抹茶、蔥綠、
+                青瓷、藍染、芋泥、焙茶。理由是這是一個決定「等一下吃什麼」的 App，
+                現在的粉彩讓它看起來像兒童抽獎輪盤。降飽和之後畫面比較像一本菜單，
+                食物本身的 emoji／圖示反而跳得出來。
+              </p>
+
+              <div class="pane-title">色票</div>
+              <div class="swatches">
+                <div class="sw"><span class="chip" style="background:#9B3B2C"></span><span class="nm">主色・醬</span><span class="hx">#9B3B2C</span></div>
+                <div class="sw"><span class="chip" style="background:#EFEAE0"></span><span class="nm">頁面底</span><span class="hx">#EFEAE0</span></div>
+                <div class="sw"><span class="chip" style="background:#F8F5EE"></span><span class="nm">卡片</span><span class="hx">#F8F5EE</span></div>
+                <div class="sw"><span class="chip" style="background:#241E18"></span><span class="nm">文字</span><span class="hx">#241E18</span></div>
+              </div>
+
+              <div class="pane-title">轉盤八色</div>
+              <div class="ramp-set">
+                <div class="ramp" id="ramp-b-l"></div>
+                <div class="ramp-note">淺底 · S 40% L 52% 食材命名</div>
+                <div class="ramp" id="ramp-b-d" style="background:#171512"></div>
+                <div class="ramp-note">深底 · 明度 +10% 才站得住</div>
+              </div>
+
+              <div class="pane-title">規格</div>
+              <div class="spec">
+                <div><b>字體</b><span>標題加重加大、字距收緊；內文維持系統字</span></div>
+                <div><b>圓角</b><span>整體收斂到 10／8，方一點比較像印刷品</span></div>
+                <div><b>陰影</b><span>幾乎取消，改用 1px 髮絲線分層</span></div>
+                <div><b>風險</b><span>中。降飽和後轉盤的「熱鬧感」會減弱</span></div>
+              </div>
+            </div>
+            <div class="mock-pane">
+              <div class="phone" aria-label="方向 B 主畫面模擬">
+                <div class="m-nav">食物轉盤</div>
+                <div class="m-seg"><span class="on">吃什麼</span><span>去哪吃</span></div>
+                <div class="m-filter"><span class="m-cap">台式・便宜</span><span class="m-cap-2">換一組</span></div>
+                <div class="m-wheel"><svg viewBox="0 0 320 320" data-wheel="b" role="img" aria-label="方向 B 配色的轉盤"></svg></div>
+                <div>
+                  <div class="m-btn">開始轉</div>
+                  <div class="m-card" style="margin-top:.45rem"><span class="dot">🍜</span><span class="nm">牛肉麵</span><span class="sub">台式</span></div>
+                </div>
+              </div>
+              <p class="mock-note">最有記憶點的一個，也是最像「有人設計過」的一個。</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- 方向 C -->
+        <article class="dir dir-c">
+          <div class="dir-head">
+            <span class="no">方向 C</span>
+            <h3>夜市</h3>
+            <span class="tag">深色底 · 抽獎儀式感</span>
+          </div>
+          <div class="dir-grid">
+            <div class="pane">
+              <div class="pane-title">立場</div>
+              <p class="stance">
+                承認這個 App 的核心體驗就是抽獎，然後把它做滿。深色底、高飽和轉盤、
+                中選瞬間發光。轉盤在深色底上是最搶眼的，第一屏的注意力問題（P0）
+                有一半會被顏色自己解決掉。代價是它會變成一個「晚上用」的 App，
+                中午在辦公室開會有點誇張。
+              </p>
+
+              <div class="pane-title">色票</div>
+              <div class="swatches">
+                <div class="sw"><span class="chip" style="background:#FF5A1F"></span><span class="nm">主色</span><span class="hx">#FF5A1F</span></div>
+                <div class="sw"><span class="chip" style="background:#131011"></span><span class="nm">頁面底</span><span class="hx">#131011</span></div>
+                <div class="sw"><span class="chip" style="background:#1D1819"></span><span class="nm">卡片</span><span class="hx">#1D1819</span></div>
+                <div class="sw"><span class="chip" style="background:#F2EAE4"></span><span class="nm">文字</span><span class="hx">#F2EAE4</span></div>
+              </div>
+
+              <div class="pane-title">轉盤八色</div>
+              <div class="ramp-set">
+                <div class="ramp" id="ramp-c-d" style="background:#131011"></div>
+                <div class="ramp-note">深底 · S 85% L 60% 為主場</div>
+                <div class="ramp" id="ramp-c-l"></div>
+                <div class="ramp-note">淺底 · 需整組降明度，這是這個方向的難點</div>
+              </div>
+
+              <div class="pane-title">規格</div>
+              <div class="spec">
+                <div><b>字體</b><span>標題重、字距開；數字用等寬對齊</span></div>
+                <div><b>圓角</b><span>維持現況；轉盤外加一圈發光環</span></div>
+                <div><b>陰影</b><span>改為發光（glow），深色底上陰影沒有作用</span></div>
+                <div><b>風險</b><span>高。等於要做兩套完整主題，工期最長</span></div>
+              </div>
+            </div>
+            <div class="mock-pane">
+              <div class="phone" aria-label="方向 C 主畫面模擬">
+                <div class="m-nav">食物轉盤</div>
+                <div class="m-seg"><span class="on">吃什麼</span><span>去哪吃</span></div>
+                <div class="m-filter"><span class="m-cap">台式・便宜</span><span class="m-cap-2">換一組</span></div>
+                <div class="m-wheel"><svg viewBox="0 0 320 320" data-wheel="c" role="img" aria-label="方向 C 配色的轉盤"></svg></div>
+                <div>
+                  <div class="m-btn">開始轉</div>
+                  <div class="m-card" style="margin-top:.45rem"><span class="dot">🍜</span><span class="nm">牛肉麵</span><span class="sub">台式</span></div>
+                </div>
+              </div>
+              <p class="mock-note">情緒最強，工期最長。深淺兩套主題都要從頭設計。</p>
+            </div>
+          </div>
+        </article>
+
+        <div class="note" style="margin-top:2.5rem">
+          <p>
+            <strong>我的建議是 B。</strong>A 太保守，做完之後 PM 文件裡「缺少食慾感」那條還在；
+            C 的情緒是對的，但它把一個中午也要用的工具鎖進了夜晚的氣氛裡，而且等於要維護兩套完整主題。
+            B 給得出記憶點，深淺色都撐得住，工期落在中間。<br><br>
+            如果想兼顧 C 的儀式感：<strong>用 B 的色系，只把「結果頁」做成深色</strong>。
+            轉盤停下來的那一刻畫面壓暗、中選的菜浮上來 —— 慶祝集中在一個畫面，不必賠上整個 App 的調性。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 決策回覆 ============ -->
+  <section>
+    <div class="row">
+      <div class="label">03 — 回覆</div>
+      <div class="body-col">
+        <h2>回覆 PM 文件第八節的五個問題。</h2>
+        <p>每一題都給明確答案，不給選項。如果哪一題你不同意，我們就針對那一題談。</p>
+
+        <div class="answers">
+          <div class="ans">
+            <span class="q">問題 1 · 要不要建立設計系統</span>
+            <h4>要建，但要薄。</h4>
+            <span class="verdict">建議：建一層 token，不重寫元件</span>
+            <p>
+              現在「主色」這個概念散在八個檔案裡，轉盤色盤硬寫在 <code>WheelView.swift</code>，
+              而 <code>Tools/make-icon.swift</code> 裡還有另一份已經跟它分岔的副本。
+              改一個顏色要翻八個檔，這是接下來每一輪美術修改都會付的稅。
+              做法是新增一個 <code>Theme.swift</code> 收攏色票／字級／間距／圓角／陰影，
+              icon 腳本也從同一份讀。<strong>SwiftUI 原生元件（Form、Picker、Sheet）全部保留</strong> ——
+              只換 token 不換元件，改動面才控制得住。
+            </p>
+          </div>
+
+          <div class="ans">
+            <span class="q">問題 2 · 轉盤要不要用插圖取代 emoji</span>
+            <h4>要換掉 emoji，但不要畫 50 張插圖。</h4>
+            <span class="verdict">建議：約 20 個向量圖示的組合系統</span>
+            <p>
+              50 張寫實插畫的美術量太大，而且每新增一道料理就要再畫一張，維護成本會回頭咬人。
+              改成<strong>「12 個菜系 × 6 種形態（飯／麵／湯／餅／捲／串）」的組合圖示</strong>，
+              約 18–20 個向量圖示就覆蓋得完現有 50 道，而且使用者自己新增的料理也有圖可用 ——
+              這一點 emoji 和插畫都做不到。統計上這是必要的：8 格轉盤有 77% 的機率撞圖，12 格是 97%。
+            </p>
+          </div>
+
+          <div class="ans">
+            <span class="q">問題 3 · 中選瞬間要慶祝到什麼程度</span>
+            <h4>三層，不含音效。</h4>
+            <span class="verdict">建議：高亮 → 觸覺 → 轉場，全程 0.6 秒內</span>
+            <p>
+              轉盤停止的瞬間，中選那一格提亮並輕微放大（0.35 秒），其餘格降低不透明度；
+              同時把現有的停止觸覺換成 success 型；接著結果頁以 spring 帶入，大圖示從轉盤位置放大過去，
+              讓人看得出「就是剛剛那一格」。<strong>不加音效</strong> ——
+              這個 App 的使用情境是辦公室和餐桌，靜音是常態，音效做了大多數人聽不到。
+              真要做就放進設定並預設關閉。
+            </p>
+          </div>
+
+          <div class="ans">
+            <span class="q">問題 4 · 篩選器要不要重新設計互動</span>
+            <h4>不做獨立頁面，改成一次看得完的網格。</h4>
+            <span class="verdict">建議：收合列不動，展開後改版</span>
+            <p>
+              收合時的條件摘要是產品規則指定的，不動。問題在展開後：六列各自橫向捲動，
+              使用者永遠只看得到每一列的前三四個標籤，33 個選項沒有一刻是完整的。
+              改成<strong>分區的自動換行網格，展開後一屏看完全部</strong>。
+              其中忌口那一區用不同的視覺權重（實心／警示描邊），因為它的行為本來就不一樣 ——
+              它不會被自動放寬，這件事應該從外觀就看得出來，而不是只靠旁邊那行小字。
+            </p>
+          </div>
+
+          <div class="ans">
+            <span class="q">問題 5 · App Icon 與字標納不納入</span>
+            <h4>Icon 納入，字標排最後。</h4>
+            <span class="verdict">建議：Icon 進本次範圍，字標視工期</span>
+            <p>
+              現在的 icon 是腳本產物，八格配色還跟 App 內的版本分岔了。
+              重做時要跟 <code>Theme.swift</code> 同源，改一次兩邊一起變。
+              另外它現在在 60pt 的桌面尺寸下八格會糊掉，需要減格數、加大中心元素。
+              字標（名稱的字體設計）對目前這個階段的價值低於前四項，
+              建議排在最後，工期不夠就下一輪。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 排程 ============ -->
+  <section>
+    <div class="row">
+      <div class="label">04 — 順序</div>
+      <div class="body-col">
+        <h2>建議的執行順序。</h2>
+        <p>
+          你在指派時勾了全部四項（設計系統、轉盤、Icon、全畫面改版）。這是它們之間的相依關係 ——
+          順序反過來做的話，後面每一步都會回頭改前面已經做完的東西。
+        </p>
+
+        <div class="steps">
+          <div class="step">
+            <i>S1</i>
+            <div>
+              <h3>設計系統打底</h3>
+              <p>新增 <code>Theme.swift</code>；重調轉盤八色並補深色模式；icon 腳本改讀同一份色票。此時畫面看起來幾乎沒變，但後面每一步都靠它。</p>
+            </div>
+            <span class="scope">先做</span>
+          </div>
+          <div class="step">
+            <i>S2</i>
+            <div>
+              <h3>轉盤本體</h3>
+              <p>兩行排版 + 動態字級解決截斷（P0）；導入圖示系統取代 emoji；中選瞬間的高亮與觸覺。這是使用者感受最強的一步。</p>
+            </div>
+            <span class="scope">相依 S1</span>
+          </div>
+          <div class="step">
+            <i>S3</i>
+            <div>
+              <h3>結果頁與第一屏</h3>
+              <p>結果頁重做情緒高點（P0）；主畫面壓縮模式切換與提示的高度，把轉盤拉回摺線上（P0）；四種狀態提示分出權重（P2）。</p>
+            </div>
+            <span class="scope">相依 S2</span>
+          </div>
+          <div class="step">
+            <i>S4</i>
+            <div>
+              <h3>篩選器與候選清單</h3>
+              <p>標籤改網格版面（P1）；候選清單改高密度列，與轉盤資訊去重（P1）；新增料理表單沿用同一套標籤元件（P2）。</p>
+            </div>
+            <span class="scope">相依 S1</span>
+          </div>
+          <div class="step">
+            <i>S5</i>
+            <div>
+              <h3>App Icon 與其餘畫面</h3>
+              <p>Icon 正式設計（P2）；首次啟動說明、歷史、設定、我的清單套用 token；深色模式逐頁驗收（P2）。</p>
+            </div>
+            <span class="scope">最後</span>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:2.5rem">
+          <p>
+            <strong>需要你先決定的只有一件事：A、B、C 選哪一個。</strong>
+            選定之前 S1 沒辦法開始，因為色票就是 S1 的產出物。
+            其餘四步的順序如果你有不同意見，我照你的排。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="closing">
+    <p class="sig">提案結束 · 等待 PM 回覆</p>
+    <p>
+      基準點收到了 —— <code>6b2a37f</code>「拿掉語言模型後的完整可用版本」，工作區乾淨。
+      接下來每一步的改動都會以這個 commit 為基準做 diff，方向不對可以整包退回去。
+    </p>
+    <p>
+      本文件不含任何程式改動，也還沒有動到 repo。
+      確認方向之後我才開始 S1，而且照約定，<strong>commit 或 push 之前會先跟你報告內容</strong>。
+    </p>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* 八道示範菜色。刻意選了會撞 emoji、也會被截斷的組合，
+     這樣「現況」那張圖呈現的就是真實會發生的情況，不是為了難看而挑的。 */
+  var DISHES = [
+    { name: "牛肉麵",        emoji: "🍜", icon: "noodle" },
+    { name: "日式拉麵",      emoji: "🍜", icon: "noodle" },
+    { name: "韓式石鍋拌飯",  emoji: "🍲", icon: "pot"    },
+    { name: "韓式泡菜豆腐鍋", emoji: "🍲", icon: "pot"   },
+    { name: "滷肉飯",        emoji: "🍚", icon: "rice"   },
+    { name: "台式炒飯",      emoji: "🍚", icon: "rice"   },
+    { name: "蚵仔煎",        emoji: "🦪", icon: "pan"    },
+    { name: "麻辣火鍋",      emoji: "🌶️", icon: "hot"    }
+  ];
+
+  /* 各方向的轉盤八色。淺底為主值，深底另給一組 —— 不是把同一組丟上去就算支援深色模式。 */
+  var PALETTES = {
+    current: ["#FA7359","#FCB84D","#8CC770","#5CB8BF","#738FE6","#B887E0","#F28CAD","#E6A16B"],
+    a: {
+      light: ["#E8563F","#EE8B33","#D3AE38","#7FAE4A","#3FA8A0","#4C7FD1","#8A6BD1","#D25A96"],
+      dark:  ["#F0674F","#F79A43","#DEBA47","#8CBB57","#4EB8B0","#5E8FDD","#9A7BDD","#DC6BA3"]
+    },
+    b: {
+      light: ["#B25239","#D19A40","#9AA65C","#5E8C72","#4E8593","#5A6E9E","#8B6A9E","#A5603F"],
+      dark:  ["#C4644A","#DEA950","#A9B56C","#6E9C81","#5E95A3","#6A7EAE","#9B7AAE","#B57050"]
+    },
+    c: {
+      dark:  ["#FF4A34","#FF9E1B","#E8D34A","#6FD44F","#2FC7C9","#4A8BFF","#A96BFF","#FF5FA2"],
+      light: ["#D63A26","#D97F12","#B3A233","#4FA935","#1F9C9E","#2F6CD6","#8347D6","#D6417F"]
+    }
+  };
+
+  var TAU = Math.PI * 2;
+  var NS = "http://www.w3.org/2000/svg";
+
+  function el(tag, attrs) {
+    var node = document.createElementNS(NS, tag);
+    for (var k in attrs) { node.setAttribute(k, attrs[k]); }
+    return node;
+  }
+
+  /* 極座標 → 直角座標。0 度指向正上方，跟 App 裡的指針一致。 */
+  function pt(cx, cy, r, deg) {
+    var rad = (deg - 90) * Math.PI / 180;
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+  }
+
+  function sector(cx, cy, r, from, to) {
+    var a = pt(cx, cy, r, from);
+    var b = pt(cx, cy, r, to);
+    var large = (to - from) > 180 ? 1 : 0;
+    return "M " + cx + " " + cy + " L " + a[0].toFixed(2) + " " + a[1].toFixed(2) +
+           " A " + r + " " + r + " 0 " + large + " 1 " + b[0].toFixed(2) + " " + b[1].toFixed(2) + " Z";
+  }
+
+  /* 現況的截斷規則，原封不動搬過來：超過 5 字切成 4 字加省略號。 */
+  function truncate(name) {
+    return Array.from(name).length <= 5 ? name : Array.from(name).slice(0, 4).join("") + "…";
+  }
+
+  /* 修正後的排版：超過 4 字就折成兩行，每行最多 4 字。
+     資料庫最長 7 字，兩行 8 字的容量吃得下，所以永遠不需要截斷。 */
+  function wrap(name) {
+    var chars = Array.from(name);
+    if (chars.length <= 4) { return [name]; }
+    var head = Math.ceil(chars.length / 2);
+    return [chars.slice(0, head).join(""), chars.slice(head).join("")];
+  }
+
+  /* 極簡的菜系／形態圖示。真正的圖示系統會另外畫，
+     這裡只需要證明「同一組菜不會再撞圖」。 */
+  function glyph(kind, color) {
+    var g = el("g", { fill: "none", stroke: color, "stroke-width": "1.6",
+                      "stroke-linecap": "round", "stroke-linejoin": "round" });
+    var parts = [];
+    if (kind === "noodle") {
+      parts.push(el("path", { d: "M -7 -1 A 7 7 0 0 0 7 -1 Z" }));
+      parts.push(el("path", { d: "M -8.5 -1 L 8.5 -1" }));
+      parts.push(el("path", { d: "M -3 -5 q 1.5 -3 3 0 M 1 -5 q 1.5 -3 3 0" }));
+    } else if (kind === "pot") {
+      parts.push(el("path", { d: "M -6.5 -2 L -6.5 3 A 6.5 5 0 0 0 6.5 3 L 6.5 -2 Z" }));
+      parts.push(el("path", { d: "M -8.5 -2 L 8.5 -2 M -8.5 0 L -10 0 M 8.5 0 L 10 0" }));
+      parts.push(el("path", { d: "M -2 -6 q 1.5 -2.5 0 -4 M 2 -6 q 1.5 -2.5 0 -4" }));
+    } else if (kind === "rice") {
+      parts.push(el("path", { d: "M -7 0 A 7 6 0 0 1 7 0 Z" }));
+      parts.push(el("path", { d: "M -8 0 L 8 0 A 8 4 0 0 1 -8 0 Z" }));
+    } else if (kind === "pan") {
+      parts.push(el("circle", { cx: 0, cy: 0, r: 6.5 }));
+      parts.push(el("path", { d: "M 6.5 0 L 10.5 0" }));
+      parts.push(el("path", { d: "M -2.5 -1.5 l 2 2 l 3 -3.5" }));
+    } else {
+      parts.push(el("path", { d: "M 0 -7 q 4 4 4 7 a 4 4 0 0 1 -8 0 q 0 -3 4 -7 Z" }));
+    }
+    for (var i = 0; i < parts.length; i++) { g.appendChild(parts[i]); }
+    return g;
+  }
+
+  /* 畫一個轉盤。
+     mode "current" 走現況（emoji + 截斷單行），mode "fixed" 走提案（圖示 + 兩行全名）。 */
+  function drawWheel(svg, opts) {
+    while (svg.firstChild) { svg.removeChild(svg.firstChild); }
+
+    var colors = opts.colors;
+    var n = DISHES.length;
+    var cx = 160, cy = 160, r = 148;
+    var step = 360 / n;
+    var fixed = opts.mode === "fixed";
+    var hair = opts.hairline || "rgba(255,255,255,0.8)";
+
+    if (opts.glow) {
+      var defs = el("defs", {});
+      var f = el("filter", { id: opts.glow, x: "-30%", y: "-30%", width: "160%", height: "160%" });
+      f.appendChild(el("feGaussianBlur", { stdDeviation: "5", result: "b" }));
+      var merge = el("feMerge", {});
+      merge.appendChild(el("feMergeNode", { in: "b" }));
+      merge.appendChild(el("feMergeNode", { in: "SourceGraphic" }));
+      f.appendChild(merge);
+      defs.appendChild(f);
+      svg.appendChild(defs);
+    }
+
+    var wheel = el("g", opts.glow ? { filter: "url(#" + opts.glow + ")" } : {});
+
+    for (var i = 0; i < n; i++) {
+      var from = i * step, to = from + step, mid = from + step / 2;
+
+      wheel.appendChild(el("path", {
+        d: sector(cx, cy, r, from, to),
+        fill: colors[i % colors.length],
+        stroke: hair,
+        "stroke-width": "1.5"
+      }));
+
+      var flip = mid > 90 && mid < 270;
+      var rot = flip ? mid + 180 : mid;
+      var side = flip ? -1 : 1;
+
+      var lab = el("g", { transform: "translate(" + cx + "," + cy + ") rotate(" + rot + ")" });
+
+      /* 圖像：現況用 emoji，提案用向量圖示 */
+      if (fixed) {
+        var ic = glyph(DISHES[i].icon, "rgba(255,255,255,0.95)");
+        ic.setAttribute("transform", "translate(" + (side * r * 0.44) + ",0)");
+        lab.appendChild(ic);
+      } else {
+        var em = el("text", {
+          x: side * r * 0.44, y: 0,
+          "text-anchor": "middle", "dominant-baseline": "central",
+          "font-size": "21"
+        });
+        em.textContent = DISHES[i].emoji;
+        lab.appendChild(em);
+      }
+
+      /* 文字：現況單行截斷，提案兩行全名 */
+      var lines = fixed ? wrap(DISHES[i].name) : [truncate(DISHES[i].name)];
+      var size = fixed ? (lines.length > 1 ? 12.5 : 14) : 13.5;
+      var top = -((lines.length - 1) * size * 1.12) / 2;
+
+      for (var j = 0; j < lines.length; j++) {
+        var t = el("text", {
+          x: side * r * 0.755,
+          y: top + j * size * 1.12,
+          "text-anchor": "middle",
+          "dominant-baseline": "central",
+          "font-size": size,
+          "font-weight": "600",
+          fill: "#fff",
+          "font-family": '"PingFang TC","Noto Sans TC",system-ui,sans-serif'
+        });
+        t.textContent = lines[j];
+        lab.appendChild(t);
+      }
+
+      wheel.appendChild(lab);
+    }
+
+    wheel.appendChild(el("circle", {
+      cx: cx, cy: cy, r: r,
+      fill: "none", stroke: hair, "stroke-width": "5"
+    }));
+
+    svg.appendChild(wheel);
+
+    /* 中心鈕 */
+    svg.appendChild(el("circle", {
+      cx: cx, cy: cy, r: 37,
+      fill: opts.hubFill || "#fff",
+      stroke: opts.brand, "stroke-width": "3"
+    }));
+    var hub = el("text", {
+      x: cx, y: cy,
+      "text-anchor": "middle", "dominant-baseline": "central",
+      "font-size": "24", "font-weight": "800",
+      fill: opts.brand,
+      "font-family": '"PingFang TC","Noto Sans TC",system-ui,sans-serif'
+    });
+    hub.textContent = "轉";
+    svg.appendChild(hub);
+
+    /* 指針 */
+    svg.appendChild(el("path", {
+      d: "M 160 22 L 146 2 L 174 2 Z",
+      fill: opts.brand,
+      stroke: opts.hubFill || "#fff",
+      "stroke-width": "2.5",
+      "stroke-linejoin": "round"
+    }));
+  }
+
+  /* ---- 診斷區的前後對照 ---- */
+  drawWheel(document.getElementById("w-before"), {
+    colors: PALETTES.current, mode: "current", brand: "#EF652D"
+  });
+  drawWheel(document.getElementById("w-after"), {
+    colors: PALETTES.a.light, mode: "fixed", brand: "#E0542B"
+  });
+
+  /* ---- 三個方向的模擬轉盤 ---- */
+  var MOCK = {
+    a: { colors: PALETTES.a.light, brand: "#E0542B", hubFill: "#FFFFFF", hairline: "rgba(255,255,255,0.85)" },
+    b: { colors: PALETTES.b.light, brand: "#9B3B2C", hubFill: "#F8F5EE", hairline: "rgba(248,245,238,0.9)" },
+    c: { colors: PALETTES.c.dark,  brand: "#FF5A1F", hubFill: "#1D1819", hairline: "rgba(19,16,17,0.85)", glow: "g-c" }
+  };
+
+  var mocks = document.querySelectorAll("[data-wheel]");
+  for (var m = 0; m < mocks.length; m++) {
+    var conf = MOCK[mocks[m].getAttribute("data-wheel")];
+    drawWheel(mocks[m], {
+      colors: conf.colors, mode: "fixed", brand: conf.brand,
+      hubFill: conf.hubFill, hairline: conf.hairline, glow: conf.glow
+    });
+  }
+
+  /* ---- 色帶 ---- */
+  function fillRamp(id, colors) {
+    var box = document.getElementById(id);
+    if (!box) { return; }
+    for (var i = 0; i < colors.length; i++) {
+      var chip = document.createElement("i");
+      chip.style.background = colors[i];
+      chip.title = colors[i];
+      box.appendChild(chip);
+    }
+  }
+
+  fillRamp("ramp-a-l", PALETTES.a.light);
+  fillRamp("ramp-a-d", PALETTES.a.dark);
+  fillRamp("ramp-b-l", PALETTES.b.light);
+  fillRamp("ramp-b-d", PALETTES.b.dark);
+  fillRamp("ramp-c-d", PALETTES.c.dark);
+  fillRamp("ramp-c-l", PALETTES.c.light);
+})();
+</script>
+
+</body>
+</html>
