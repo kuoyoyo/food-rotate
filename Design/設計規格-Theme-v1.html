@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>食物轉盤 — 設計規格 Theme v1</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; }
+</style>
+</head>
+<body>
+<style>
+:root {
+  --paper:#E7E6DF; --surface:#F2F1EB; --ink:#191A16; --ink-mid:#55574E;
+  --ink-soft:#7E8077; --rule:#C7C6BD;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  --sans: "PingFang TC", "Noto Sans TC", "Hiragino Sans TC", system-ui, sans-serif;
+  --gut: clamp(1.25rem, 4vw, 3rem);
+  --ok:#3F6B45; --bad:#9B2F26;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:#141512; --surface:#1C1E19; --ink:#E5E4DB; --ink-mid:#9B9D92;
+    --ink-soft:#75776D; --rule:#33352E; --ok:#8FBF8E; --bad:#E08A80;
+  }
+}
+:root[data-theme="dark"] {
+  --paper:#141512; --surface:#1C1E19; --ink:#E5E4DB; --ink-mid:#9B9D92;
+  --ink-soft:#75776D; --rule:#33352E; --ok:#8FBF8E; --bad:#E08A80;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans);
+       font-size:16px; line-height:1.72; -webkit-font-smoothing:antialiased; }
+.wrap { max-width:76rem; margin:0 auto; padding:0 var(--gut) 5rem; }
+
+.masthead { border-bottom:1.5px solid var(--ink); padding:clamp(2.5rem,7vw,4.5rem) 0 1.4rem; display:grid; gap:1.5rem; }
+.stamp { font-family:var(--mono); font-size:.7rem; letter-spacing:.17em; color:var(--ink-soft);
+         display:flex; flex-wrap:wrap; gap:.45rem 1.6rem; }
+h1 { font-size:clamp(2.1rem,6.5vw,4rem); line-height:1.06; letter-spacing:-.03em; font-weight:600; margin:0; text-wrap:balance; }
+.dek { color:var(--ink-mid); max-width:44ch; margin:0; }
+
+section { padding-top:clamp(3rem,7vw,5rem); }
+.row { display:grid; grid-template-columns:8.5rem minmax(0,1fr); gap:0 2.5rem; align-items:start; }
+@media (max-width:820px){ .row{ grid-template-columns:minmax(0,1fr); gap:.75rem; } }
+.label { font-family:var(--mono); font-size:.7rem; letter-spacing:.16em; color:var(--ink-soft);
+         padding-top:.55rem; border-top:1px solid var(--ink); position:sticky; top:1.5rem; }
+@media (max-width:820px){ .label{ position:static; } }
+.col > * + * { margin-top:1.05rem; }
+h2 { font-size:clamp(1.5rem,3.4vw,2.2rem); line-height:1.25; letter-spacing:-.02em; font-weight:600; margin:0 0 .4rem; text-wrap:balance; }
+h3 { font-size:1.08rem; font-weight:600; margin:0; letter-spacing:-.01em; }
+p { margin:0; max-width:62ch; color:var(--ink-mid); }
+p strong, td strong { color:var(--ink); font-weight:600; }
+code { font-family:var(--mono); font-size:.86em; }
+
+.note { border-left:2px solid var(--ink); padding-left:1rem; }
+.note.warn { border-left-color:var(--bad); }
+
+/* 轉盤陣列 */
+.wheels { display:grid; grid-template-columns:repeat(auto-fit,minmax(13rem,1fr)); gap:1.75rem; margin-top:1.75rem; }
+.wheels.two { grid-template-columns:repeat(auto-fit,minmax(19rem,1fr)); }
+figure { margin:0; display:grid; gap:.7rem; justify-items:center; }
+figure svg { width:100%; max-width:20rem; height:auto; display:block; }
+figcaption { font-size:.82rem; color:var(--ink-mid); text-align:center; max-width:32ch; line-height:1.55; }
+figcaption b { display:block; font-family:var(--mono); font-size:.67rem; letter-spacing:.13em;
+               color:var(--ink-soft); font-weight:400; margin-bottom:.25rem; }
+.ground-l { background:#EFEAE0; border-radius:12px; padding:.9rem; }
+.ground-d { background:#1A1714; border-radius:12px; padding:.9rem; }
+
+/* 表 */
+.tbl { width:100%; border-collapse:collapse; font-size:.87rem; margin-top:1.5rem; display:block; overflow-x:auto; }
+.tbl table { width:100%; border-collapse:collapse; min-width:34rem; }
+th, td { text-align:left; padding:.5rem .7rem; border-bottom:1px solid var(--rule); vertical-align:middle; }
+th { font-family:var(--mono); font-size:.66rem; letter-spacing:.11em; color:var(--ink-soft); font-weight:400; white-space:nowrap; }
+td.num { font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.sw { display:inline-block; width:1.5rem; height:1.5rem; border-radius:4px; border:1px solid rgba(128,128,128,.35); vertical-align:middle; margin-right:.5rem; }
+.pill { font-family:var(--mono); font-size:.66rem; letter-spacing:.06em; padding:.05rem .4rem; border:1px solid currentColor; border-radius:3px; white-space:nowrap; }
+.pass { color:var(--ok); }
+.fail { color:var(--bad); }
+
+/* 文字色示範 */
+.chips { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1.25rem; }
+.chips span { padding:.4rem .8rem; border-radius:8px; font-size:.85rem; font-weight:600; }
+
+.legend { font-family:var(--mono); font-size:.66rem; letter-spacing:.1em; color:var(--ink-soft); margin-top:.6rem; }
+.closing { margin-top:clamp(3rem,7vw,5rem); border-top:1.5px solid var(--ink); padding-top:1.4rem; display:grid; gap:.7rem; }
+.sig { font-family:var(--mono); font-size:.7rem; letter-spacing:.14em; color:var(--ink-soft); }
+:focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
+@media (prefers-reduced-motion:reduce){ *{ animation-duration:.001ms!important; transition-duration:.001ms!important; } }
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="stamp">
+    <span>食物轉盤 FOOD ROTATE</span><span>設計規格 THEME v1</span>
+    <span>S1a 交付物</span><span>2026-08-11</span><span>設計 → PM</span>
+  </div>
+  <h1>方向 B 定案後的<br>可實作規格。</h1>
+  <p class="dek">
+    這是文字版 <code>設計規格-Theme-v1.md</code> 的視覺對照。
+    所有轉盤都是照規格即時繪製的，不是示意圖 —— 排版規則、取色順序、文字色判定
+    全部跑真實邏輯，看到的就是實作後該有的樣子。
+  </p>
+</header>
+
+<!-- 對比問題 -->
+<section>
+  <div class="row">
+    <div class="label">01 — 待核可</div>
+    <div class="col">
+      <h2>白字在蛋黃與抹茶上讀不到。</h2>
+      <p>
+        <code>WheelView.swift:229</code> 目前是無條件白字。拿定案的八色實測，
+        <strong>蛋黃 2.50、抹茶 2.63</strong>，門檻是 4.5。這不是主觀判斷，是量得出來的。
+      </p>
+
+      <div class="chips" id="chips-bad"></div>
+      <div class="legend">↑ 現況：一律白字</div>
+
+      <div class="chips" id="chips-good"></div>
+      <div class="legend">↓ 修正：文字色跟著格子走，蔥綠與青瓷另降 3–5% 明度</div>
+
+      <div class="tbl">
+        <table id="contrast-table">
+          <thead><tr><th>色</th><th>fill</th><th>白字</th><th>墨字</th><th>採用</th><th>結果</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="note warn" style="margin-top:1.75rem">
+        <p>
+          <strong>蔥綠與青瓷不管白字墨字都過不了</strong>（最高只到 4.29 / 4.12），
+          必須動色。只降明度，色相與飽和度不動，幅度 3–5%，肉眼幾乎看不出來 ——
+          但這是可讀性的及格線。<strong>這是本規格唯一觸及 PM 定案數值的地方。</strong>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 格證明 -->
+<section>
+  <div class="row">
+    <div class="label">02 — 12 格證明</div>
+    <div class="col">
+      <h2>PM 要的那張圖：12 格滿載，全部最長菜名。</h2>
+      <p>
+        資料庫最長的菜名是 7 個字。這張圖把 12 格全部塞進 5 字以上的菜名，
+        包含兩道 7 字的「西班牙海鮮燉飯」與「韓式泡菜豆腐鍋」。
+        <strong>沒有任何一格被截斷。</strong>
+      </p>
+
+      <div class="wheels two">
+        <figure>
+          <div class="ground-l"><svg viewBox="0 0 340 340" id="w12-worst" role="img" aria-label="12 格轉盤，全部使用最長的菜名，無截斷"></svg></div>
+          <figcaption><b>12 格 · 最壞情況</b>11pt 兩行。第 9–12 格用同色相的淺一階變體，同一盤上沒有兩塊同色。</figcaption>
+        </figure>
+        <figure>
+          <div class="ground-l"><svg viewBox="0 0 340 340" id="w12-real" role="img" aria-label="12 格轉盤，真實混合長度菜名"></svg></div>
+          <figcaption><b>12 格 · 真實抽樣</b>長短混合。4 字以內維持一行，較大字級。</figcaption>
+        </figure>
+      </div>
+
+      <div class="note" style="margin-top:1.75rem">
+        <p>
+          對照現況：同一組菜在現在的程式裡會變成「西班牙海鮮…」「韓式泡菜…」「韓式石鍋…」
+          「韓式人參…」—— 四格都以「韓式」或地名開頭再接省略號，而且其中三格共用 🍲。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 各格數 -->
+<section>
+  <div class="row">
+    <div class="label">03 — 格數</div>
+    <div class="col">
+      <h2>4 / 6 / 8 / 10 / 12 的取色與排版。</h2>
+      <p>
+        4 與 6 格刻意跳號取色，讓相鄰色相差最大。8 格用滿母盤。
+        10 與 12 格在母盤之後接同色相的淺一階變體 —— 不新增色相，
+        因為 12 個降飽和的食材色必然互相靠近，硬擠只會讓辨識更差。
+      </p>
+
+      <div class="wheels" id="slot-row"></div>
+
+      <div class="tbl">
+        <table id="slot-table">
+          <thead><tr><th>格數</th><th>夾角</th><th>字級</th><th>圖示</th><th>取色序列</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 深色 -->
+<section>
+  <div class="row">
+    <div class="label">04 — 深色</div>
+    <div class="col">
+      <h2>深底盤全部用墨字。</h2>
+      <p>
+        深色模式下盤色本來就提亮了，墨字反而穩定。三個色（辣椒、藍染、焙茶）
+        需要提亮 2.5–4% 才能讓墨字達標。
+      </p>
+
+      <div class="wheels two">
+        <figure>
+          <div class="ground-l"><svg viewBox="0 0 340 340" data-w="light8" role="img" aria-label="淺色模式的 8 格轉盤"></svg></div>
+          <figcaption><b>淺色模式</b>頁底 #EFEAE0</figcaption>
+        </figure>
+        <figure>
+          <div class="ground-d"><svg viewBox="0 0 340 340" data-w="dark8" role="img" aria-label="深色模式的 8 格轉盤"></svg></div>
+          <figcaption><b>深色模式</b>頁底 #1A1714</figcaption>
+        </figure>
+      </div>
+
+      <div class="note warn" style="margin-top:1.75rem">
+        <p>
+          <strong>工程的留空清單漏了一項：深色模式的主色。</strong>
+          原本的醬色 <code>#9B3B2C</code> 疊在深色卡片上對比只有 <strong>2.36</strong>，完全不能用
+          —— 上圖深色轉盤的中心鈕與指針用的是提亮版 <code>#D9674F</code>（4.64）。
+          所以 <code>Theme.Dark</code> 要有四個 token，不是三個。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- icon -->
+<section>
+  <div class="row">
+    <div class="label">05 — Icon</div>
+    <div class="col">
+      <h2>加深規則是一條公式，不是第二份色票。</h2>
+      <p>
+        PM 指明必須保留「icon 版加深」這道轉換，否則 icon 在 60pt 桌面尺寸會糊成一團灰。
+        做成純函數之後，色票仍然只有一份。
+      </p>
+
+      <p style="font-family:var(--mono); font-size:.85rem; color:var(--ink);
+                border:1px solid var(--rule); padding:.9rem 1rem; max-width:none; margin-top:1.25rem;">
+        icon色 = HSB(母盤色) → S × 1.12（上限 1.0）, B × 0.86 → RGB
+      </p>
+
+      <div class="tbl">
+        <table id="icon-table">
+          <thead><tr><th>色</th><th>母盤（淺底）</th><th></th><th>icon 版</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:1.5rem">
+        另外 icon 構圖<strong>由八格改六格</strong>，中心刀叉圓從約 25% 放大到 40% ——
+        60pt 下八格會糊掉。六格取色沿用上面的 6 格序列，跟 App 內完全一致。
+      </p>
+    </div>
+  </div>
+</section>
+
+<div class="closing">
+  <p class="sig">S1a 交付 · 待 PM 核可</p>
+  <p>
+    核可後工程即可填完 <code>DesignTokens.swift</code> 的留空項目、收尾 S1b。
+    另外本規格解除了工程報告標記的 S2 阻塞：7 道缺標籤的菜落在中性圖示與「轉盤不用菜系」兩條規則下，
+    <strong>S2 可以照常開工</strong>。詳見文字版第八節。
+  </p>
+</div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var NS="http://www.w3.org/2000/svg";
+  function el(t,a){ var n=document.createElementNS(NS,t); for(var k in a) n.setAttribute(k,a[k]); return n; }
+
+  /* ---------- 色彩工具 ---------- */
+  function hx2rgb(h){ h=h.replace('#',''); return [parseInt(h.substr(0,2),16)/255,
+    parseInt(h.substr(2,2),16)/255, parseInt(h.substr(4,2),16)/255]; }
+  function rgb2hx(c){ function f(v){ v=Math.round(Math.max(0,Math.min(1,v))*255);
+    return (v<16?'0':'')+v.toString(16).toUpperCase(); } return '#'+f(c[0])+f(c[1])+f(c[2]); }
+  function lum(c){ function ch(v){ return v<=0.04045 ? v/12.92 : Math.pow((v+0.055)/1.055,2.4); }
+    return 0.2126*ch(c[0])+0.7152*ch(c[1])+0.0722*ch(c[2]); }
+  function contrast(a,b){ var l1=lum(hx2rgb(a)), l2=lum(hx2rgb(b));
+    if(l2>l1){ var t=l1; l1=l2; l2=t; } return (l1+0.05)/(l2+0.05); }
+  function rgb2hsv(c){ var r=c[0],g=c[1],b=c[2],mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,h=0;
+    if(d){ if(mx===r) h=((g-b)/d+(g<b?6:0)); else if(mx===g) h=(b-r)/d+2; else h=(r-g)/d+4; h/=6; }
+    return [h, mx?d/mx:0, mx]; }
+  function hsv2rgb(h,s,v){ var i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s);
+    switch(i%6){ case 0:return[v,t,p]; case 1:return[q,v,p]; case 2:return[p,v,t];
+                 case 3:return[p,q,v]; case 4:return[t,p,v]; default:return[v,p,q]; } }
+  /* 淺一階變體：明度 ×1.20、飽和 ×0.82。10/12 格用它補足，不新增色相。 */
+  function lighten(hex){ var s=rgb2hsv(hx2rgb(hex));
+    return rgb2hx(hsv2rgb(s[0], s[1]*0.82, Math.min(1,s[2]*1.20))); }
+  /* icon 加深：S ×1.12（上限 1）、B ×0.86。 */
+  function deepen(hex){ var s=rgb2hsv(hx2rgb(hex));
+    return rgb2hx(hsv2rgb(s[0], Math.min(1,s[1]*1.12), s[2]*0.86)); }
+
+  var WHITE="#FFFFFF", INK="#241E18";
+  /* 文字色一律由對比決定，不由人猜。 */
+  function labelInk(fill){ return contrast(fill,WHITE) >= contrast(fill,INK) ? WHITE : INK; }
+
+  /* ---------- 色票 ---------- */
+  var ORIG_L = ["#B25239","#D19A40","#9AA65C","#5E8C72","#4E8593","#5A6E9E","#8B6A9E","#A5603F"];
+  var NAMES  = ["辣椒","蛋黃","抹茶","蔥綠","青瓷","藍染","芋泥","焙茶"];
+  /* ◆ 蔥綠與青瓷降明度到白字達 4.5；其餘同 PM 定案。 */
+  var LIGHT  = ["#B25239","#D19A40","#9AA65C","#557F68","#4A7E8B","#5A6E9E","#8B6A9E","#A5603F"];
+  /* ◆ 辣椒、藍染、焙茶提亮到墨字達 4.5。 */
+  var DARK   = ["#CE694E","#DEA950","#A9B56C","#6E9C81","#5E95A3","#7085B8","#9B7AAE","#BB7453"];
+  var ADJUSTED = { 3:1, 4:1 };            // 淺底調過的索引
+  var ADJUSTED_D = { 0:1, 5:1, 7:1 };     // 深底調過的索引
+
+  var SAUCE_L = "#9B3B2C", SAUCE_D = "#D9674F";
+  var PAGE_L = "#EFEAE0", PAGE_D = "#1A1714";
+
+  /* 取色序列（規格二-3）。`i` 是母盤索引，`v:1` 代表用同色相的淺一階變體。
+     不用「負數索引」表示變體 —— JS 的 -0 === 0，第 0 格的變體會被吃掉。 */
+  var SEQ = {
+    4:  [{i:0},{i:2},{i:4},{i:6}],
+    6:  [{i:0},{i:2},{i:3},{i:4},{i:6},{i:7}],
+    8:  [{i:0},{i:1},{i:2},{i:3},{i:4},{i:5},{i:6},{i:7}],
+    10: [{i:0},{i:1},{i:2},{i:3},{i:4},{i:5},{i:6},{i:7},{i:0,v:1},{i:2,v:1}],
+    12: [{i:0},{i:1},{i:2},{i:3},{i:4},{i:5},{i:6},{i:7},{i:0,v:1},{i:2,v:1},{i:3,v:1},{i:1,v:1}]
+  };
+
+  function slotColors(count, scheme){
+    var base = scheme==="dark" ? DARK : LIGHT;
+    return SEQ[count].map(function(s){
+      var hex = base[s.i];
+      if (s.v) hex = lighten(hex);
+      return { fill:hex, ink:labelInk(hex) };
+    });
+  }
+
+  /* ---------- 排版規則（規格七） ---------- */
+  var LAYOUT = {
+    4:  { font:17,   lead:1.15, icon:30, tR:0.72, iR:0.42 },
+    6:  { font:15,   lead:1.15, icon:26, tR:0.74, iR:0.43 },
+    8:  { font:13.5, lead:1.12, icon:22, tR:0.76, iR:0.44 },
+    10: { font:12,   lead:1.10, icon:19, tR:0.77, iR:0.45 },
+    12: { font:11,   lead:1.08, icon:17, tR:0.78, iR:0.46 }
+  };
+  /* 4 字以內一行；5 字以上折兩行，前 ceil(n/2) 字在第一行。永不截斷。 */
+  function wrapName(name){
+    var ch = Array.from(name);
+    if (ch.length <= 4) return [name];
+    var head = Math.ceil(ch.length/2);
+    return [ch.slice(0,head).join(""), ch.slice(head).join("")];
+  }
+
+  /* ---------- 吃法圖示（規格八-3）---------- */
+  function glyph(kind, color, scale){
+    var g = el("g",{fill:"none",stroke:color,"stroke-width":(1.6*scale).toFixed(2),
+                    "stroke-linecap":"round","stroke-linejoin":"round"});
+    var d = {
+      noodles:  ["M -7 -1 A 7 7 0 0 0 7 -1 Z","M -8.5 -1 L 8.5 -1","M -3 -5 q 1.5 -3 3 0 M 1 -5 q 1.5 -3 3 0"],
+      rice:     ["M -7 0.5 A 7 6 0 0 1 7 0.5 Z","M -8 0.5 L 8 0.5 A 8 4 0 0 1 -8 0.5 Z"],
+      soup:     ["M -6.5 -1 A 6.5 5.5 0 0 0 6.5 -1 Z","M -8.5 -1 L 8.5 -1","M -2 -5 q 1.5 -2.5 0 -4"],
+      hotpot:   ["M -6.5 -2 L -6.5 3 A 6.5 5 0 0 0 6.5 3 L 6.5 -2 Z","M -8.5 -2 L 8.5 -2 M -8.5 0 L -10 0 M 8.5 0 L 10 0"],
+      snack:    ["M 0 -7 L 6.5 3 L -6.5 3 Z","M -3.2 -1.5 L 3.2 -1.5"],
+      bread:    ["M -7.5 2.5 A 7.5 6 0 0 1 7.5 2.5 Z","M -4 2.5 L -4 -2 M 0 2.5 L 0 -3.5 M 4 2.5 L 4 -2"],
+      light:    ["M -6.5 1 A 6.5 6 0 0 0 6.5 1","M -8 1 L 8 1","M 0 -6 q 4 2 4 5"],
+      meat:     ["M -7.5 1 q 0 -5 7.5 -5 q 7.5 0 7.5 5 q 0 3 -7.5 3 q -7.5 0 -7.5 -3 Z","M -3 -1.5 q 2 -1.5 4 0","M 7 -7 q 2.5 3 0 6"],
+      neutral:  ["M -4 -7 L -4 1 M -4 1 L -4 7","M -6 -7 L -6 -3 M -2 -7 L -2 -3","M 5 -7 q 2.5 3 0 6 L 5 7"]
+    }[kind] || [];
+    d.forEach(function(p){ g.appendChild(el("path",{d:p})); });
+    g.setAttribute("transform-origin","0 0");
+    return g;
+  }
+
+  /* ---------- 畫轉盤 ---------- */
+  function drawWheel(svg, dishes, scheme){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    var n = dishes.length, L = LAYOUT[n], cols = slotColors(n, scheme);
+    var cx=170, cy=170, r=156, step=360/n;
+    var sauce = scheme==="dark" ? SAUCE_D : SAUCE_L;
+    var page  = scheme==="dark" ? PAGE_D  : PAGE_L;
+    var hair  = scheme==="dark" ? "rgba(26,23,20,.85)" : "rgba(255,255,255,.85)";
+    var k = r/150;   // 規格：字級依 radius/150 等比縮放
+
+    for(var i=0;i<n;i++){
+      var a0=i*step-90, a1=a0+step, mid=a0+step/2;
+      var p0=[cx+r*Math.cos(a0*Math.PI/180), cy+r*Math.sin(a0*Math.PI/180)];
+      var p1=[cx+r*Math.cos(a1*Math.PI/180), cy+r*Math.sin(a1*Math.PI/180)];
+      svg.appendChild(el("path",{
+        d:"M "+cx+" "+cy+" L "+p0[0].toFixed(2)+" "+p0[1].toFixed(2)+
+          " A "+r+" "+r+" 0 "+(step>180?1:0)+" 1 "+p1[0].toFixed(2)+" "+p1[1].toFixed(2)+" Z",
+        fill:cols[i].fill, stroke:hair, "stroke-width":1.5 }));
+
+      /* 左半邊翻轉 180°，行序跟著翻，否則上下顛倒讀 */
+      var norm=((mid+90)%360+360)%360;
+      var flip = norm>90 && norm<270;
+      var rot = flip ? mid+180 : mid, side = flip ? -1 : 1;
+      var g = el("g",{transform:"translate("+cx+","+cy+") rotate("+rot+")"});
+
+      var ic = glyph(dishes[i].icon, cols[i].ink, (L.icon*k)/24);
+      ic.setAttribute("transform","translate("+(side*r*L.iR).toFixed(1)+",0) scale("+((L.icon*k)/24).toFixed(3)+")");
+      g.appendChild(ic);
+
+      var lines = wrapName(dishes[i].name);
+      var fs = L.font*k, top = -((lines.length-1)*fs*L.lead)/2;
+      lines.forEach(function(line,j){
+        var t = el("text",{ x:(side*r*L.tR).toFixed(1), y:(top+j*fs*L.lead).toFixed(2),
+          "text-anchor":"middle","dominant-baseline":"central","font-size":fs.toFixed(2),
+          "font-weight":"600", fill:cols[i].ink,
+          "font-family":'"PingFang TC","Noto Sans TC",system-ui,sans-serif' });
+        t.textContent = line; g.appendChild(t);
+      });
+      svg.appendChild(g);
+    }
+
+    svg.appendChild(el("circle",{cx:cx,cy:cy,r:r,fill:"none",stroke:hair,"stroke-width":5}));
+    svg.appendChild(el("circle",{cx:cx,cy:cy,r:r*0.235,
+      fill: scheme==="dark" ? "#23201B" : "#F8F5EE", stroke:sauce,"stroke-width":3}));
+    var hub = el("text",{x:cx,y:cy,"text-anchor":"middle","dominant-baseline":"central",
+      "font-size":(r*0.115).toFixed(1),"font-weight":"800",fill:sauce,
+      "font-family":'"PingFang TC","Noto Sans TC",system-ui,sans-serif'});
+    hub.textContent="轉"; svg.appendChild(hub);
+    svg.appendChild(el("path",{d:"M 170 30 L 155 6 L 185 6 Z", fill:sauce,
+      stroke: page, "stroke-width":2.5, "stroke-linejoin":"round"}));
+  }
+
+  /* ---------- 資料 ---------- */
+  function D(name,icon){ return {name:name, icon:icon}; }
+
+  /* 12 格最壞情況：全部 5 字以上，含兩道 7 字 */
+  var WORST12=[D("西班牙海鮮燉飯","rice"),D("韓式泡菜豆腐鍋","hotpot"),D("韓式石鍋拌飯","rice"),
+    D("韓式人參雞湯","soup"),D("泰式打拋豬飯","rice"),D("泰式綠咖哩飯","rice"),
+    D("越式法國麵包","bread"),D("新加坡拉克沙","noodles"),D("印度咖哩烤餅","bread"),
+    D("夏威夷生魚飯","light"),D("美式烤肋排","meat"),D("韓式炸醬麵","noodles")];
+
+  var REAL12=[D("牛肉麵","noodles"),D("滷肉飯","rice"),D("蚵仔煎","snack"),D("小籠包","snack"),
+    D("日式拉麵","noodles"),D("親子丼","rice"),D("韓式泡菜豆腐鍋","hotpot"),D("義大利麵","noodles"),
+    D("西班牙海鮮燉飯","rice"),D("美式牛排","meat"),D("低卡餐盒","light"),D("越式河粉","noodles")];
+
+  var POOL=[D("牛肉麵","noodles"),D("滷肉飯","rice"),D("韓式石鍋拌飯","rice"),D("蚵仔煎","snack"),
+    D("日式拉麵","noodles"),D("麻辣火鍋","hotpot"),D("西班牙海鮮燉飯","rice"),D("小籠包","snack"),
+    D("越式法國麵包","bread"),D("低卡餐盒","light"),D("韓式人參雞湯","soup"),D("美式牛排","meat")];
+
+  /* ---------- 繪製 ---------- */
+  drawWheel(document.getElementById("w12-worst"), WORST12, "light");
+  drawWheel(document.getElementById("w12-real"),  REAL12,  "light");
+
+  var row=document.getElementById("slot-row");
+  [4,6,8,10,12].forEach(function(n){
+    var fig=document.createElement("figure");
+    var box=document.createElement("div"); box.className="ground-l";
+    var svg=el("svg",{viewBox:"0 0 340 340",role:"img","aria-label":n+" 格轉盤"});
+    box.appendChild(svg); fig.appendChild(box);
+    var cap=document.createElement("figcaption");
+    cap.innerHTML="<b>"+n+" 格</b>"+LAYOUT[n].font+"pt · 圖示 "+LAYOUT[n].icon;
+    fig.appendChild(cap); row.appendChild(fig);
+    drawWheel(svg, POOL.slice(0,n), "light");
+  });
+
+  document.querySelectorAll("[data-w]").forEach(function(svg){
+    var scheme = svg.getAttribute("data-w")==="dark8" ? "dark" : "light";
+    drawWheel(svg, POOL.slice(0,8), scheme);
+  });
+
+  /* ---------- 表格 ---------- */
+  var bad=document.getElementById("chips-bad"), good=document.getElementById("chips-good");
+  ORIG_L.forEach(function(h,i){
+    var s=document.createElement("span");
+    s.style.background=h; s.style.color=WHITE; s.textContent=NAMES[i];
+    bad.appendChild(s);
+    var t=document.createElement("span");
+    t.style.background=LIGHT[i]; t.style.color=labelInk(LIGHT[i]); t.textContent=NAMES[i];
+    good.appendChild(t);
+  });
+
+  var tb=document.querySelector("#contrast-table tbody");
+  LIGHT.forEach(function(h,i){
+    var w=contrast(h,WHITE), k=contrast(h,INK), ink=labelInk(h), best=Math.max(w,k);
+    var tr=document.createElement("tr");
+    tr.innerHTML =
+      "<td><span class='sw' style='background:"+h+"'></span>"+NAMES[i]+(ADJUSTED[i]?" ◆":"")+"</td>"+
+      "<td class='num'>"+h+(ADJUSTED[i]?" <span class='pill'>調</span>":"")+"</td>"+
+      "<td class='num'>"+w.toFixed(2)+"</td><td class='num'>"+k.toFixed(2)+"</td>"+
+      "<td>"+(ink===WHITE?"白字":"墨字")+"</td>"+
+      "<td class='num "+(best>=4.5?"pass":"fail")+"'>"+best.toFixed(2)+" "+(best>=4.5?"✓":"✗")+"</td>";
+    tb.appendChild(tr);
+  });
+
+  var st=document.querySelector("#slot-table tbody");
+  [4,6,8,10,12].forEach(function(n){
+    var seq=SEQ[n].map(function(s){ return s.v? s.i+"+" : ""+s.i; }).join(", ");
+    var tr=document.createElement("tr");
+    tr.innerHTML="<td class='num'>"+n+"</td><td class='num'>"+(360/n)+"°</td>"+
+      "<td class='num'>"+LAYOUT[n].font+"</td><td class='num'>"+LAYOUT[n].icon+"</td>"+
+      "<td class='num'>"+seq+"</td>";
+    st.appendChild(tr);
+  });
+
+  var it=document.querySelector("#icon-table tbody");
+  LIGHT.forEach(function(h,i){
+    var d=deepen(h), tr=document.createElement("tr");
+    tr.innerHTML="<td>"+NAMES[i]+"</td><td class='num'>"+h+"</td>"+
+      "<td><span class='sw' style='background:"+h+"'></span></td>"+
+      "<td class='num'>"+d+"</td>"+
+      "<td><span class='sw' style='background:"+d+"'></span></td>";
+    it.appendChild(tr);
+  });
+})();
+</script>
+
+</body>
+</html>
