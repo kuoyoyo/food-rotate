@@ -12,6 +12,7 @@ struct ResultSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var showNearby = false
+    @AccessibilityFocusState private var nameFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -80,6 +81,7 @@ struct ResultSheet: View {
             }
         }
         .presentationDetents([.large])
+        .onAppear { nameFocused = true }
     }
 
     private var hero: some View {
@@ -92,6 +94,10 @@ struct ResultSheet: View {
             Text(winner.name)
                 .font(.largeTitle.weight(.bold))
                 .multilineTextAlignment(.center)
+                // 結果頁一出現就把 VoiceOver 的焦點搶到菜名上。
+                // 預設焦點會落在最上面的圖示，那是「哪一類」不是「哪一道」——
+                // 使用者等的是答案，不該還要往下滑一格才聽到。
+                .accessibilityFocused($nameFocused)
             Text(winner.category)
                 .font(.caption.weight(.semibold))
                 .padding(.horizontal, 10)

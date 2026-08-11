@@ -211,8 +211,19 @@ final class RotateViewModel {
             guard let self else { return }
             let picked = self.items[index]
             self.winner = picked
-            self.showResult = true
             self.save(winner: picked, to: context)
+
+            // 讓中選轉場先跑完再開結果頁。以前是同一瞬間開，那 0.35 秒的提亮放大
+            // 會整個被 sheet 蓋住，等於沒做。
+            //
+            // 不用計時器狀態：醒來時比對 winner 還是不是同一道就好 ——
+            // 使用者在這 0.35 秒內又按了轉、或改了條件，winner 會被清掉或換人，
+            // 這個 Task 自己就不會開錯的結果頁。
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(WheelCelebration.duration))
+                guard let self, self.winner == picked else { return }
+                self.showResult = true
+            }
         }
     }
 
@@ -401,6 +412,9 @@ struct RotateView: View {
                         items: model.items,
                         angle: model.spinner.angle(at: context.date),
                         isSpinning: model.spinner.isSpinning,
+                        // 從 winner 反查格號，而不是在 model 裡再存一份索引：
+                        // 兩份狀態就會有對不上的那一天（改名、刪卡片都會動到清單）。
+                        winnerIndex: model.winner.flatMap { model.items.firstIndex(of: $0) },
                         onSpin: { model.spin(saveTo: modelContext) }
                     )
                 }

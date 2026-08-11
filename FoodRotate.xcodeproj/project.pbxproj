@@ -435,8 +435,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 856TGM9976;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "食物轉盤";
 				INFOPLIST_FILE = "FoodRotateWidget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "食物轉盤";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -460,8 +460,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 856TGM9976;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "食物轉盤";
 				INFOPLIST_FILE = "FoodRotateWidget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "食物轉盤";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
