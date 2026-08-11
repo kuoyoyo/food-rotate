@@ -106,17 +106,14 @@ struct WheelView: View {
     let isSpinning: Bool
     let onSpin: () -> Void
 
+    /// 深淺兩底的八色是兩組不同的值（不是同一組調透明度），所以要知道現在是哪一邊。
+    @Environment(\.colorScheme) private var colorScheme
+
     /// 八格用的色盤。相鄰兩格的色相拉開，轉起來才看得出在動。
-    private static let palette: [Color] = [
-        Color(red: 0.98, green: 0.45, blue: 0.35),
-        Color(red: 0.99, green: 0.72, blue: 0.30),
-        Color(red: 0.55, green: 0.78, blue: 0.44),
-        Color(red: 0.36, green: 0.72, blue: 0.75),
-        Color(red: 0.45, green: 0.56, blue: 0.90),
-        Color(red: 0.72, green: 0.53, blue: 0.88),
-        Color(red: 0.95, green: 0.55, blue: 0.68),
-        Color(red: 0.90, green: 0.63, blue: 0.42),
-    ]
+    ///
+    /// 值收在 `DesignTokens`，這裡不留任何字面值 —— 以前這份色盤跟 `Tools/make-icon.swift`
+    /// 各寫一份，改了一邊另一邊不會跟著動。
+    private var palette: [Color] { Theme.wheelPalette(for: colorScheme) }
 
     var body: some View {
         GeometryReader { geo in
@@ -141,7 +138,11 @@ struct WheelView: View {
     // MARK: 扇形
 
     private func wheelBody(side: CGFloat) -> some View {
-        Canvas { context, size in
+        // 在進 Canvas 之前取一次。`palette` 現在是 computed property，
+        // 留在繪製迴圈裡等於每一格都重算一次陣列。
+        let colors = palette
+
+        return Canvas { context, size in
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
             let radius = min(size.width, size.height) / 2 - 6
             guard !items.isEmpty else {
@@ -171,7 +172,7 @@ struct WheelView: View {
                     clockwise: false
                 )
                 path.closeSubpath()
-                context.fill(path, with: .color(Self.palette[index % Self.palette.count]))
+                context.fill(path, with: .color(colors[index % colors.count]))
                 context.stroke(path, with: .color(.white.opacity(0.75)), lineWidth: 1.5)
 
                 drawLabel(

@@ -21,7 +21,18 @@ enum FoodLibrary {
         }
         do {
             let data = try Data(contentsOf: url)
-            return try JSONDecoder().decode([FoodItem].self, from: data)
+            let items = try JSONDecoder().decode([FoodItem].self, from: data)
+            #if DEBUG
+            // 解得開不代表資料是好的，見 `FoodDataAudit`。
+            //
+            // 這裡刻意**只印不當掉**，跟上面解析失敗的處理不一樣：解析失敗是「這份資料不能用」，
+            // 標籤缺漏是「這份資料能用，但有幾道菜之後會沒有圖」。為了後者讓 App 開不起來，
+            // 會擋住所有其他開發，而且缺哪個標籤是內容決策，不是開發者當場補得掉的東西。
+            if let report = FoodDataAudit.consoleReport(for: FoodDataAudit.findings(in: items)) {
+                print(report)
+            }
+            #endif
+            return items
         } catch {
             // 刻意 fatalError 而不是回空陣列：資料是隨 App 一起出貨的，
             // 解不開就是開發階段打錯字。靜默回空陣列會變成「使用者看到空轉盤，
