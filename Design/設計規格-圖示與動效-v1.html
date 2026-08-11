@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>食物轉盤 — 圖示與動效規格 v1</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; }
+</style>
+</head>
+<body>
+<style>
+:root{--paper:#E7E6DF;--ink:#191A16;--ink-mid:#55574E;--ink-soft:#7E8077;--rule:#C7C6BD;--bad:#9B2F26;
+--mono:ui-monospace,"SF Mono",Menlo,monospace;--sans:"PingFang TC","Noto Sans TC",system-ui,sans-serif;
+--gut:clamp(1.25rem,4vw,3rem)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#141512;--ink:#E5E4DB;--ink-mid:#9B9D92;--ink-soft:#75776D;--rule:#33352E;--bad:#E08A80}}
+:root[data-theme="dark"]{--paper:#141512;--ink:#E5E4DB;--ink-mid:#9B9D92;--ink-soft:#75776D;--rule:#33352E;--bad:#E08A80}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.72;-webkit-font-smoothing:antialiased}
+.wrap{max-width:74rem;margin:0 auto;padding:0 var(--gut) 5rem}
+.masthead{border-bottom:1.5px solid var(--ink);padding:clamp(2.5rem,7vw,4.5rem) 0 1.4rem;display:grid;gap:1.4rem}
+.stamp{font-family:var(--mono);font-size:.7rem;letter-spacing:.17em;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:.45rem 1.6rem}
+h1{font-size:clamp(2.1rem,6.5vw,3.8rem);line-height:1.06;letter-spacing:-.03em;font-weight:600;margin:0;text-wrap:balance}
+.dek{color:var(--ink-mid);max-width:44ch;margin:0}
+section{padding-top:clamp(3rem,7vw,5rem)}
+.row{display:grid;grid-template-columns:8.5rem minmax(0,1fr);gap:0 2.5rem;align-items:start}
+@media(max-width:820px){.row{grid-template-columns:minmax(0,1fr);gap:.75rem}}
+.label{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;color:var(--ink-soft);padding-top:.55rem;border-top:1px solid var(--ink);position:sticky;top:1.5rem}
+@media(max-width:820px){.label{position:static}}
+.col>*+*{margin-top:1.05rem}
+h2{font-size:clamp(1.5rem,3.4vw,2.2rem);line-height:1.25;letter-spacing:-.02em;font-weight:600;margin:0 0 .4rem;text-wrap:balance}
+p{margin:0;max-width:62ch;color:var(--ink-mid)}
+p strong{color:var(--ink);font-weight:600}
+code{font-family:var(--mono);font-size:.86em}
+.note{border-left:2px solid var(--ink);padding-left:1rem}
+.note.warn{border-left-color:var(--bad)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:1.75rem}
+.cell{background:var(--paper);padding:1.1rem .8rem;display:grid;gap:.6rem;justify-items:center;text-align:center}
+.cell .nm{font-size:.84rem;color:var(--ink)}
+.cell .fn{font-family:var(--mono);font-size:.6rem;letter-spacing:.05em;color:var(--ink-soft);word-break:break-all}
+.sizes{display:flex;align-items:flex-end;gap:.7rem;justify-content:center}
+.onwheel{display:grid;grid-template-columns:repeat(auto-fit,minmax(7rem,1fr));gap:.6rem;margin-top:1.5rem}
+.chipbox{border-radius:10px;padding:.8rem .5rem;display:grid;gap:.45rem;justify-items:center}
+.chipbox span{font-size:.72rem;font-weight:600}
+.stage{margin-top:1.75rem;border:1px solid var(--rule);border-radius:14px;padding:1.5rem;display:grid;gap:1.2rem;justify-items:center;background:#EFEAE0;position:relative;overflow:hidden}
+.stage.dim::after{content:"";position:absolute;inset:0;background:#1A1714;opacity:0;pointer-events:none;transition:opacity .22s ease-in-out}
+.stage.dim.on::after{opacity:.55}
+.btn{font-family:var(--sans);font-size:.9rem;font-weight:600;border:none;border-radius:999px;padding:.5rem 1.5rem;background:#9B3B2C;color:#F8F5EE;cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
+.sheet{position:absolute;left:1.5rem;right:1.5rem;bottom:0;background:#1A1714;color:#EFE9DE;border-radius:14px 14px 0 0;padding:1.1rem;display:grid;gap:.3rem;justify-items:center;transform:translateY(105%);z-index:3}
+.sheet .big{font-size:1.5rem;font-weight:700}
+.sheet .sub{font-size:.75rem;color:#9B9D92}
+.tl{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:1.5rem;display:block;overflow-x:auto}
+.tl table{width:100%;border-collapse:collapse;min-width:32rem}
+.tl td svg{display:block}
+th,td{text-align:left;padding:.45rem .7rem;border-bottom:1px solid var(--rule)}
+th{font-family:var(--mono);font-size:.65rem;letter-spacing:.11em;color:var(--ink-soft);font-weight:400;white-space:nowrap}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.badges{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1.25rem}
+.badge{background:#DAD7D0;color:#241E18;border-radius:4px;height:16px;padding:0 6px;font-size:11px;font-weight:500;display:inline-flex;align-items:center;line-height:1}
+.closing{margin-top:clamp(3rem,7vw,5rem);border-top:1.5px solid var(--ink);padding-top:1.4rem;display:grid;gap:.7rem}
+.sig{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;color:var(--ink-soft)}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+
+<div class="wrap">
+<header class="masthead">
+  <div class="stamp"><span>食物轉盤 FOOD ROTATE</span><span>圖示與動效規格 v1</span>
+  <span>S2 交付物</span><span>2026-08-11</span><span>設計 → PM</span></div>
+  <h1>九個圖示<br>與 0.6 秒。</h1>
+  <p class="dek">吃法圖示已出檔，在 <code>Design/icons/</code>。
+  中選瞬間的動效可以在下面實際播放 —— 動效用文字描述不準，看一次比讀十行參數快。</p>
+</header>
+
+<section><div class="row"><div class="label">01 — 圖示</div><div class="col">
+<h2>九個資產，靠剪影分辨。</h2>
+<p>每一格由大到小是 64 / 30 / 17pt。<strong>17pt 是 12 格轉盤的實際尺寸</strong>，
+也是唯一該拿來驗收的尺寸。</p>
+<div class="grid"><div class="cell"><svg width="64" height="64" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 12.6 A7.4 7.8 0 0 0 17 12.6 Z"/><path d="M1 12.6 H18.2"/><path d="M10.5 11 L21 2.6"/><path d="M12.6 11.6 L22 4"/></g></svg><div class="sizes"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 12.6 A7.4 7.8 0 0 0 17 12.6 Z"/><path d="M1 12.6 H18.2"/><path d="M10.5 11 L21 2.6"/><path d="M12.6 11.6 L22 4"/></g></svg><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 12.6 A7.4 7.8 0 0 0 17 12.6 Z"/><path d="M1 12.6 H18.2"/><path d="M10.5 11 L21 2.6"/><path d="M12.6 11.6 L22 4"/></g></svg></div><div class="nm">麵食</div><div class="fn">form-noodles.svg</div></div><div class="cell"><svg width="64" height="64" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 13.8 A9.6 7.2 0 0 0 21.6 13.8 Z"/><path d="M1.2 13.8 H22.8"/><path d="M6.4 13.8 q5.6 -4.6 11.2 0"/><path d="M8.5 8 h0.01"/><path d="M12 6.6 h0.01"/><path d="M15.5 8 h0.01"/></g></svg><div class="sizes"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 13.8 A9.6 7.2 0 0 0 21.6 13.8 Z"/><path d="M1.2 13.8 H22.8"/><path d="M6.4 13.8 q5.6 -4.6 11.2 0"/><path d="M8.5 8 h0.01"/><path d="M12 6.6 h0.01"/><path d="M15.5 8 h0.01"/></g></svg><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 13.8 A9.6 7.2 0 0 0 21.6 13.8 Z"/><path d="M1.2 13.8 H22.8"/><path d="M6.4 13.8 q5.6 -4.6 11.2 0"/><path d="M8.5 8 h0.01"/><path d="M12 6.6 h0.01"/><path d="M15.5 8 h0.01"/></g></svg></div><div class="nm">飯食</div><div class="fn">form-rice.svg</div></div><div class="cell"><svg width="64" height="64" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.4 a4.6 4.6 0 1 0 0.01 0 Z"/><path d="M11.3 11.3 L21 21"/></g></svg><div class="sizes"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.4 a4.6 4.6 0 1 0 0.01 0 Z"/><path d="M11.3 11.3 L21 21"/></g></svg><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.4 a4.6 4.6 0 1 0 0.01 0 Z"/><path d="M11.3 11.3 L21 21"/></g></svg></div><div class="nm">湯的</div><div class="fn">form-soup.svg</div></div><div class="cell"><svg width="64" height="64" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 12.4 V16.4 A7.6 5.2 0 0 0 19.6 16.4 V12.4 Z"/><path d="M2.6 12.4 H21.4"/><path d="M2.6 12.4 L0.9 10.2"/><path d="M21.4 12.4 L23.1 10.2"/><path d="M12 9.6 q2 -2.6 0 -5.2"/><path d="M8 9.6 q1.6 -2 0 -4"/></g></svg><div class="sizes"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 12.4 V16.4 A7.6 5.2 0 0 0 19.6 16.4 V12.4 Z"/><path d="M2.6 12.4 H21.4"/><path d="M2.6 12.4 L0.9 10.2"/><path d="M21.4 12.4 L23.1 10.2"/><path d="M12 9.6 q2 -2.6 0 -5.2"/><path d="M8 9.6 q1.6 -2 0 -4"/></g></svg><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 12.4 V16.4 A7.6 5.2 0 0 0 19.6 16.4 V12.4 Z"/><path d="M2.6 12.4 H21.4"/><path d="M2.6 12.4 L0.9 10.2"/><path d="M21.4 12.4 L23.1 10.2"/><path d="M12 9.6 q2 -2.6 0 -5.2"/><path d="M8 9.6 q1.6 -2 0 -4"/></g></svg></div><div class="nm">鍋物</div><div class="fn">form-hotpot.svg</div></div><div class="cell"><svg width="64" height="64" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 21.4 L21.4 2.6"/><path d="M7.5 16.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M12 12 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M16.5 7.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/></g></svg><div class="sizes"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 21.4 L21.4 2.6"/><path d="M7.5 16.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M12 12 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M16.5 7.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/></g></svg><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 21.4 L21.4 2.6"/><path d="M7.5 16.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M12 12 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M16.5 7.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/></g></svg></div><div class="nm">小吃</div><div class="fn">form-snack.svg</div></div><div class="cell"><svg width="64" height="64" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L2.6 19 A10.9 10.9 0 0 0 21.4 19 Z"/><path d="M9.6 13 h0.01"/><path d="M13.8 14.6 h0.01"/><path d="M11.8 9.4 h0.01"/></g></svg><div class="sizes"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L2.6 19 A10.9 10.9 0 0 0 21.4 19 Z"/><path d="M9.6 13 h0.01"/><path d="M13.8 14.6 h0.01"/><path d="M11.8 9.4 h0.01"/></g></svg><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L2.6 19 A10.9 10.9 0 0 0 21.4 19 Z"/><path d="M9.6 13 h0.01"/><path d="M13.8 14.6 h0.01"/><path d="M11.8 9.4 h0.01"/></g></svg></div><div class="nm">麵包餅皮</div><div class="fn">form-bread.svg</div></div><div class="cell"><svg width="64" height="64" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 14.4 A9.6 6.4 0 0 0 21.6 14.4 Z"/><path d="M1.2 14.4 H22.8"/><path d="M12 12.4 q-0.8 -6.8 6.2 -8.4 q0.8 7 -6.2 8.4 Z"/></g></svg><div class="sizes"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 14.4 A9.6 6.4 0 0 0 21.6 14.4 Z"/><path d="M1.2 14.4 H22.8"/><path d="M12 12.4 q-0.8 -6.8 6.2 -8.4 q0.8 7 -6.2 8.4 Z"/></g></svg><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 14.4 A9.6 6.4 0 0 0 21.6 14.4 Z"/><path d="M1.2 14.4 H22.8"/><path d="M12 12.4 q-0.8 -6.8 6.2 -8.4 q0.8 7 -6.2 8.4 Z"/></g></svg></div><div class="nm">輕食</div><div class="fn">form-light.svg</div></div><div class="cell"><svg width="64" height="64" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 12.4 a7.2 7 0 1 0 14.4 0 a7.2 7 0 1 0 -14.4 0 Z"/><path d="M17.8 12.4 H20.4"/><path d="M22 10.6 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M22 14.2 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M7 13 q3.6 -1.8 7.2 0"/></g></svg><div class="sizes"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 12.4 a7.2 7 0 1 0 14.4 0 a7.2 7 0 1 0 -14.4 0 Z"/><path d="M17.8 12.4 H20.4"/><path d="M22 10.6 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M22 14.2 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M7 13 q3.6 -1.8 7.2 0"/></g></svg><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 12.4 a7.2 7 0 1 0 14.4 0 a7.2 7 0 1 0 -14.4 0 Z"/><path d="M17.8 12.4 H20.4"/><path d="M22 10.6 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M22 14.2 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M7 13 q3.6 -1.8 7.2 0"/></g></svg></div><div class="nm">肉食</div><div class="fn">form-meat.svg</div></div><div class="cell"><svg width="64" height="64" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 8.6 V21.4"/><path d="M3 2.6 V8.6 H9.4 V2.6"/><path d="M6.2 2.6 V8.6"/><path d="M17.4 2.6 q3.6 4.4 0 8.8 V21.4"/></g></svg><div class="sizes"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 8.6 V21.4"/><path d="M3 2.6 V8.6 H9.4 V2.6"/><path d="M6.2 2.6 V8.6"/><path d="M17.4 2.6 q3.6 4.4 0 8.8 V21.4"/></g></svg><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 8.6 V21.4"/><path d="M3 2.6 V8.6 H9.4 V2.6"/><path d="M6.2 2.6 V8.6"/><path d="M17.4 2.6 q3.6 4.4 0 8.8 V21.4"/></g></svg></div><div class="nm">中性 fallback</div><div class="fn">form-unknown.svg</div></div></div>
+
+<div class="note warn" style="margin-top:1.75rem"><p>
+<strong>第一版是錯的，渲染出來才發現。</strong> 我原本把麵食、飯食、湯的、鍋物都畫成碗，
+靠碗上的裝飾區分 —— 縮到 17pt 四個糊成同一團。加在共用輪廓上的細節，在小尺寸等於沒加。<br><br>
+改成靠<strong>整體剪影</strong>：湯的直接畫湯匙、麵食的筷子斜插出碗外、鍋物用把手拉出橫向、
+飯食把飯山拉高。第二輪又修掉麵包餅皮與肉食（17pt 下是兩坨黑塊），
+改成楔形切角與帶骨突出物。
+</p></div>
+</div></div></section>
+
+
+<section><div class="row"><div class="label">02 — 旋轉</div><div class="col">
+<h2>圖示不該跟著扇形轉。</h2>
+<p>PM 問：圖示現在跟著扇形旋轉（沿用 emoji 的做法），要不要改成正立？
+<strong>設計同意 PM 的直覺：改成正立。</strong>下表是同一組圖示在 17pt 下轉不同角度的樣子。</p>
+
+<div class="tl"><table>
+<thead><tr><th>吃法</th><th>正立</th><th>120°</th><th>180°</th><th>220°</th><th>300°</th></tr></thead>
+<tbody><tr><td>麵食</td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 12.6 A7.4 7.8 0 0 0 17 12.6 Z"/><path d="M1 12.6 H18.2"/><path d="M10.5 11 L21 2.6"/><path d="M12.6 11.6 L22 4"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(120 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 12.6 A7.4 7.8 0 0 0 17 12.6 Z"/><path d="M1 12.6 H18.2"/><path d="M10.5 11 L21 2.6"/><path d="M12.6 11.6 L22 4"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(180 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 12.6 A7.4 7.8 0 0 0 17 12.6 Z"/><path d="M1 12.6 H18.2"/><path d="M10.5 11 L21 2.6"/><path d="M12.6 11.6 L22 4"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(220 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 12.6 A7.4 7.8 0 0 0 17 12.6 Z"/><path d="M1 12.6 H18.2"/><path d="M10.5 11 L21 2.6"/><path d="M12.6 11.6 L22 4"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(300 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 12.6 A7.4 7.8 0 0 0 17 12.6 Z"/><path d="M1 12.6 H18.2"/><path d="M10.5 11 L21 2.6"/><path d="M12.6 11.6 L22 4"/></g></svg></td></tr><tr><td>飯食</td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 13.8 A9.6 7.2 0 0 0 21.6 13.8 Z"/><path d="M1.2 13.8 H22.8"/><path d="M6.4 13.8 q5.6 -4.6 11.2 0"/><path d="M8.5 8 h0.01"/><path d="M12 6.6 h0.01"/><path d="M15.5 8 h0.01"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(120 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 13.8 A9.6 7.2 0 0 0 21.6 13.8 Z"/><path d="M1.2 13.8 H22.8"/><path d="M6.4 13.8 q5.6 -4.6 11.2 0"/><path d="M8.5 8 h0.01"/><path d="M12 6.6 h0.01"/><path d="M15.5 8 h0.01"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(180 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 13.8 A9.6 7.2 0 0 0 21.6 13.8 Z"/><path d="M1.2 13.8 H22.8"/><path d="M6.4 13.8 q5.6 -4.6 11.2 0"/><path d="M8.5 8 h0.01"/><path d="M12 6.6 h0.01"/><path d="M15.5 8 h0.01"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(220 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 13.8 A9.6 7.2 0 0 0 21.6 13.8 Z"/><path d="M1.2 13.8 H22.8"/><path d="M6.4 13.8 q5.6 -4.6 11.2 0"/><path d="M8.5 8 h0.01"/><path d="M12 6.6 h0.01"/><path d="M15.5 8 h0.01"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(300 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 13.8 A9.6 7.2 0 0 0 21.6 13.8 Z"/><path d="M1.2 13.8 H22.8"/><path d="M6.4 13.8 q5.6 -4.6 11.2 0"/><path d="M8.5 8 h0.01"/><path d="M12 6.6 h0.01"/><path d="M15.5 8 h0.01"/></g></svg></td></tr><tr><td>湯的</td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.4 a4.6 4.6 0 1 0 0.01 0 Z"/><path d="M11.3 11.3 L21 21"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(120 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.4 a4.6 4.6 0 1 0 0.01 0 Z"/><path d="M11.3 11.3 L21 21"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(180 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.4 a4.6 4.6 0 1 0 0.01 0 Z"/><path d="M11.3 11.3 L21 21"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(220 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.4 a4.6 4.6 0 1 0 0.01 0 Z"/><path d="M11.3 11.3 L21 21"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(300 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.4 a4.6 4.6 0 1 0 0.01 0 Z"/><path d="M11.3 11.3 L21 21"/></g></svg></td></tr><tr><td>鍋物</td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 12.4 V16.4 A7.6 5.2 0 0 0 19.6 16.4 V12.4 Z"/><path d="M2.6 12.4 H21.4"/><path d="M2.6 12.4 L0.9 10.2"/><path d="M21.4 12.4 L23.1 10.2"/><path d="M12 9.6 q2 -2.6 0 -5.2"/><path d="M8 9.6 q1.6 -2 0 -4"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(120 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 12.4 V16.4 A7.6 5.2 0 0 0 19.6 16.4 V12.4 Z"/><path d="M2.6 12.4 H21.4"/><path d="M2.6 12.4 L0.9 10.2"/><path d="M21.4 12.4 L23.1 10.2"/><path d="M12 9.6 q2 -2.6 0 -5.2"/><path d="M8 9.6 q1.6 -2 0 -4"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(180 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 12.4 V16.4 A7.6 5.2 0 0 0 19.6 16.4 V12.4 Z"/><path d="M2.6 12.4 H21.4"/><path d="M2.6 12.4 L0.9 10.2"/><path d="M21.4 12.4 L23.1 10.2"/><path d="M12 9.6 q2 -2.6 0 -5.2"/><path d="M8 9.6 q1.6 -2 0 -4"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(220 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 12.4 V16.4 A7.6 5.2 0 0 0 19.6 16.4 V12.4 Z"/><path d="M2.6 12.4 H21.4"/><path d="M2.6 12.4 L0.9 10.2"/><path d="M21.4 12.4 L23.1 10.2"/><path d="M12 9.6 q2 -2.6 0 -5.2"/><path d="M8 9.6 q1.6 -2 0 -4"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(300 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 12.4 V16.4 A7.6 5.2 0 0 0 19.6 16.4 V12.4 Z"/><path d="M2.6 12.4 H21.4"/><path d="M2.6 12.4 L0.9 10.2"/><path d="M21.4 12.4 L23.1 10.2"/><path d="M12 9.6 q2 -2.6 0 -5.2"/><path d="M8 9.6 q1.6 -2 0 -4"/></g></svg></td></tr><tr><td>小吃</td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 21.4 L21.4 2.6"/><path d="M7.5 16.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M12 12 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M16.5 7.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(120 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 21.4 L21.4 2.6"/><path d="M7.5 16.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M12 12 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M16.5 7.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(180 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 21.4 L21.4 2.6"/><path d="M7.5 16.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M12 12 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M16.5 7.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(220 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 21.4 L21.4 2.6"/><path d="M7.5 16.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M12 12 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M16.5 7.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(300 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 21.4 L21.4 2.6"/><path d="M7.5 16.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M12 12 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/><path d="M16.5 7.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"/></g></svg></td></tr><tr><td>麵包餅皮</td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L2.6 19 A10.9 10.9 0 0 0 21.4 19 Z"/><path d="M9.6 13 h0.01"/><path d="M13.8 14.6 h0.01"/><path d="M11.8 9.4 h0.01"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(120 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L2.6 19 A10.9 10.9 0 0 0 21.4 19 Z"/><path d="M9.6 13 h0.01"/><path d="M13.8 14.6 h0.01"/><path d="M11.8 9.4 h0.01"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(180 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L2.6 19 A10.9 10.9 0 0 0 21.4 19 Z"/><path d="M9.6 13 h0.01"/><path d="M13.8 14.6 h0.01"/><path d="M11.8 9.4 h0.01"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(220 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L2.6 19 A10.9 10.9 0 0 0 21.4 19 Z"/><path d="M9.6 13 h0.01"/><path d="M13.8 14.6 h0.01"/><path d="M11.8 9.4 h0.01"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(300 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L2.6 19 A10.9 10.9 0 0 0 21.4 19 Z"/><path d="M9.6 13 h0.01"/><path d="M13.8 14.6 h0.01"/><path d="M11.8 9.4 h0.01"/></g></svg></td></tr><tr><td>輕食</td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 14.4 A9.6 6.4 0 0 0 21.6 14.4 Z"/><path d="M1.2 14.4 H22.8"/><path d="M12 12.4 q-0.8 -6.8 6.2 -8.4 q0.8 7 -6.2 8.4 Z"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(120 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 14.4 A9.6 6.4 0 0 0 21.6 14.4 Z"/><path d="M1.2 14.4 H22.8"/><path d="M12 12.4 q-0.8 -6.8 6.2 -8.4 q0.8 7 -6.2 8.4 Z"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(180 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 14.4 A9.6 6.4 0 0 0 21.6 14.4 Z"/><path d="M1.2 14.4 H22.8"/><path d="M12 12.4 q-0.8 -6.8 6.2 -8.4 q0.8 7 -6.2 8.4 Z"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(220 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 14.4 A9.6 6.4 0 0 0 21.6 14.4 Z"/><path d="M1.2 14.4 H22.8"/><path d="M12 12.4 q-0.8 -6.8 6.2 -8.4 q0.8 7 -6.2 8.4 Z"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(300 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 14.4 A9.6 6.4 0 0 0 21.6 14.4 Z"/><path d="M1.2 14.4 H22.8"/><path d="M12 12.4 q-0.8 -6.8 6.2 -8.4 q0.8 7 -6.2 8.4 Z"/></g></svg></td></tr><tr><td>肉食</td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 12.4 a7.2 7 0 1 0 14.4 0 a7.2 7 0 1 0 -14.4 0 Z"/><path d="M17.8 12.4 H20.4"/><path d="M22 10.6 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M22 14.2 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M7 13 q3.6 -1.8 7.2 0"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(120 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 12.4 a7.2 7 0 1 0 14.4 0 a7.2 7 0 1 0 -14.4 0 Z"/><path d="M17.8 12.4 H20.4"/><path d="M22 10.6 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M22 14.2 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M7 13 q3.6 -1.8 7.2 0"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(180 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 12.4 a7.2 7 0 1 0 14.4 0 a7.2 7 0 1 0 -14.4 0 Z"/><path d="M17.8 12.4 H20.4"/><path d="M22 10.6 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M22 14.2 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M7 13 q3.6 -1.8 7.2 0"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(220 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 12.4 a7.2 7 0 1 0 14.4 0 a7.2 7 0 1 0 -14.4 0 Z"/><path d="M17.8 12.4 H20.4"/><path d="M22 10.6 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M22 14.2 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M7 13 q3.6 -1.8 7.2 0"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(300 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 12.4 a7.2 7 0 1 0 14.4 0 a7.2 7 0 1 0 -14.4 0 Z"/><path d="M17.8 12.4 H20.4"/><path d="M22 10.6 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M22 14.2 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0"/><path d="M7 13 q3.6 -1.8 7.2 0"/></g></svg></td></tr><tr><td>中性</td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 8.6 V21.4"/><path d="M3 2.6 V8.6 H9.4 V2.6"/><path d="M6.2 2.6 V8.6"/><path d="M17.4 2.6 q3.6 4.4 0 8.8 V21.4"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(120 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 8.6 V21.4"/><path d="M3 2.6 V8.6 H9.4 V2.6"/><path d="M6.2 2.6 V8.6"/><path d="M17.4 2.6 q3.6 4.4 0 8.8 V21.4"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(180 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 8.6 V21.4"/><path d="M3 2.6 V8.6 H9.4 V2.6"/><path d="M6.2 2.6 V8.6"/><path d="M17.4 2.6 q3.6 4.4 0 8.8 V21.4"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(220 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 8.6 V21.4"/><path d="M3 2.6 V8.6 H9.4 V2.6"/><path d="M6.2 2.6 V8.6"/><path d="M17.4 2.6 q3.6 4.4 0 8.8 V21.4"/></g></svg></td><td><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(300 12 12)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 8.6 V21.4"/><path d="M3 2.6 V8.6 H9.4 V2.6"/><path d="M6.2 2.6 V8.6"/><path d="M17.4 2.6 q3.6 4.4 0 8.8 V21.4"/></g></svg></td></tr></tbody></table></div>
+
+<div class="note warn" style="margin-top:1.5rem"><p>
+麵食變成一堆亂線、湯匙變成鑰匙、鍋子完全認不出來、刀叉變成刮痕。<br><br>
+<strong>emoji 耐轉是因為它是彩色色塊，靠質地與顏色辨識；線稿靠的是輪廓方向。</strong>
+一個碗倒過來就不是碗 —— 這是兩種圖像本質的差別，不是畫得好不好的問題。
+</p></div>
+
+<div class="note" style="margin-top:1.25rem"><p>
+<strong>實作</strong>：圖示畫在 <code>layer.rotate(by: drawAngle)</code> 之內，要正立需反向抵消
+<code>-(drawAngle + 轉盤當前角度)</code>（外層還有一個 <code>.rotationEffect</code>）。
+<code>Canvas</code> 本來就逐幀重畫，不增加成本。<br><br>
+建議<strong>全程都抵消</strong>，不要只在靜止時轉正 —— 後者會在停止瞬間跳一下。
+轉動時每秒 1.2–1.7 圈，那個自轉看不出來；停止後的正立才是真正要讀的狀態。<br><br>
+文字仍是徑向的（菜名太長，非徑向排不下），所以會是「圖示正立 + 文字徑向」的混合。
+兩者相隔 0.3r，不在同一個視覺單元裡，設計判斷可以接受。若實機看起來不對，
+退路是<strong>只在 10／12 格拿掉圖示</strong>，但請先看過正立版再決定。
+</p></div>
+</div></div></section>
+<section><div class="row"><div class="label">03 — 單色</div><div class="col">
+<h2>同一個檔案，兩種墨色。</h2>
+<p>資產不自帶顏色（<code>stroke="currentColor"</code>）。同一個 SVG 在白字格用白、
+在墨字格用墨 —— 這是 Theme 規格「文字色跟著格子走」的必然結果，
+也是<strong>不能做雙色</strong>的原因。</p>
+<div class="onwheel"><div class="chipbox" style="background:#B25239"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 13.2 A7.5 6.8 0 0 0 19.5 13.2 Z"/><path d="M2.8 13.2 H21.2"/><path d="M10.5 11.6 L18.2 3.4"/><path d="M13 12 L20.7 3.8"/></g></svg><span style="color:#FFFFFF">辣椒</span></div><div class="chipbox" style="background:#D19A40"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#241E18" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 14 A7.4 5.8 0 0 0 19.4 14 Z"/><path d="M3 14 H21"/><path d="M7.4 14 q4.6 -9.4 9.2 0"/></g></svg><span style="color:#241E18">蛋黃</span></div><div class="chipbox" style="background:#9AA65C"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#241E18" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5 V12.6"/><path d="M12 12.6 a4.4 5.2 0 1 1 0.001 0 Z"/></g></svg><span style="color:#241E18">抹茶</span></div><div class="chipbox" style="background:#557F68"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 11.8 V15.2 A5.6 4.2 0 0 0 17.6 15.2 V11.8 Z"/><path d="M4 11.8 H20"/><path d="M4 11.8 L1.6 9.8"/><path d="M20 11.8 L22.4 9.8"/><path d="M12 8.6 q1.6 -2 0 -3.6"/></g></svg><span style="color:#FFFFFF">蔥綠</span></div><div class="chipbox" style="background:#4A7E8B"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 18.4 L18.2 6"/><path d="M9.4 14.6 m -2.2 0 a2.2 2.2 0 1 0 4.4 0 a2.2 2.2 0 1 0 -4.4 0"/><path d="M12.6 11.4 m -2.2 0 a2.2 2.2 0 1 0 4.4 0 a2.2 2.2 0 1 0 -4.4 0"/><path d="M15.8 8.2 m -2.2 0 a2.2 2.2 0 1 0 4.4 0 a2.2 2.2 0 1 0 -4.4 0"/></g></svg><span style="color:#FFFFFF">青瓷</span></div><div class="chipbox" style="background:#5A6E9E"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2 L5 17.4 A8.6 8.6 0 0 0 19 17.4 Z"/><path d="M9.6 12.4 h0.01"/><path d="M13.6 13.6 h0.01"/><path d="M11.6 9.6 h0.01"/></g></svg><span style="color:#FFFFFF">藍染</span></div><div class="chipbox" style="background:#8B6A9E"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13.8 A7 5.4 0 0 0 19 13.8 Z"/><path d="M3.4 13.8 H20.6"/><path d="M12 11.6 q-0.4 -5.2 5 -6.4 q0.6 5.4 -5 6.4 Z"/></g></svg><span style="color:#FFFFFF">芋泥</span></div><div class="chipbox" style="background:#A5603F"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12.6 a5.6 4.6 0 1 0 11.2 0 a5.6 4.6 0 1 0 -11.2 0 Z"/><path d="M17.2 12.6 H20"/><path d="M20 10.4 a1.5 1.5 0 1 0 0 2.2"/><path d="M20 12.9 a1.5 1.5 0 1 0 0 2.2"/></g></svg><span style="color:#FFFFFF">焙茶</span></div></div>
+</div></div></section>
+
+<section><div class="row"><div class="label">04 — 角標</div><div class="col">
+<h2>菜系角標建議不畫圖示。</h2>
+<p>PM 指派 10 個菜系角標。<strong>設計建議改用文字元件</strong>，理由有三個，
+若不同意我照原案畫 10 張。</p>
+<div class="tl"><table>
+<thead><tr><th>問題</th><th>說明</th></tr></thead>
+<tbody>
+<tr><td>國族刻板印象</td><td>墨西哥要畫什麼？寬邊帽不能用。韓式、日式、東南亞同樣沒有不符號化的畫法。這是題目的陷阱，不是畫功問題</td></tr>
+<tr><td>尺寸下辨識不了</td><td>角標約 14–16pt。第一節剛證明 17pt 下四個碗形會糊掉；菜系的差異比「碗與鍋」更抽象</td></tr>
+<tr><td>維護成本</td><td>每加一個菜系要再畫一張。文字角標加一個是零成本</td></tr>
+</tbody></table></div>
+<p style="margin-top:1.5rem">建議的元件（radius 4、高 16、字級 micro、中性灰底）：</p>
+<div class="badges"><span class="badge">台</span><span class="badge">中</span><span class="badge">日</span><span class="badge">韓</span><span class="badge">東南</span><span class="badge">南亞</span><span class="badge">義</span><span class="badge">美</span><span class="badge">歐</span><span class="badge">墨</span></div>
+<p style="margin-top:1.25rem">刻意用中性灰不上色：轉盤的顏色代表「第幾格」，不代表菜系。
+角標也上色的話，同一個畫面會有兩套顏色語意在打架。</p>
+</div></div></section>
+
+<section><div class="row"><div class="label">05 — 動效</div><div class="col">
+<h2>中選瞬間，0.6 秒。</h2>
+<p>三層依序發生：高亮 → 觸覺 → 結果頁。按下去看實際節奏（觸覺這裡演示不了，
+實機上是第 0.02 秒的 success 型回饋）。</p>
+<div class="note warn"><p>
+<strong>v1 初稿有一條寫錯了。</strong> 我寫「現況是 impact 型，要改成 success」，
+但 <code>Haptics.swift:24</code> 在基準點就已經是 <code>.success</code>、從未改過 ——
+我沒讀那個檔就從函式名稱推斷。工程擋下來是對的，<strong>再加一個會變成兩下震動</strong>。
+這一層維持現況、不需要任何改動。
+</p></div>
+
+<div class="stage dim" id="stage">
+  <svg viewBox="0 0 300 300" id="demo" style="width:min(17rem,70vw);height:auto" role="img" aria-label="中選動效演示"></svg>
+  <button class="btn" id="play" type="button">播放中選瞬間</button>
+  <div class="sheet" id="sheet"><div class="big" id="sheet-name">滷肉飯</div>
+  <div class="sub">今天就吃這個</div></div>
+</div>
+
+<div class="tl"><table>
+<thead><tr><th>時間</th><th>事件</th><th>參數</th></tr></thead>
+<tbody>
+<tr><td class="num">0.00</td><td>轉盤停止</td><td>既有 <code>WheelSpinner.finish()</code></td></tr>
+<tr><td class="num">0.00–0.28</td><td>中選格放大 + 描邊加粗</td><td class="num">spring(0.28, 0.72) · scale 1.045 · stroke 1.5→3.5</td></tr>
+<tr><td class="num">0.00–0.20</td><td>其餘格降透明</td><td class="num">easeOut(0.20) · opacity → 0.55</td></tr>
+<tr><td class="num">0.02</td><td>觸覺</td><td><strong>維持現況</strong> <code>Haptics.wheelStopped()</code>，已是 <code>.success</code></td></tr>
+<tr><td class="num">0.28–0.50</td><td>背景壓暗</td><td class="num">easeInOut(0.22) · #1A1714 @ 0.55</td></tr>
+<tr><td class="num">0.28–0.60</td><td>ResultSheet 推入 + 圖示位移</td><td class="num">spring(0.32, 0.84) · matchedGeometry</td></tr>
+</tbody></table></div>
+
+<div class="note" style="margin-top:1.75rem"><p>
+放大只有 <strong>4.5%</strong>。轉盤是 Canvas 畫的，整格大幅放大會壓到相鄰格；
+4.5% 配上描邊加粗就足以讓那一格跳出來。<br><br>
+<code>dampingFraction</code> 用 0.84 偏高、幾乎不回彈 ——
+這是一個宣告結果的動作，不是一個彈跳的玩具。
+</p></div>
+
+<div class="note" style="margin-top:1.25rem"><p>
+<strong>開啟「減少動態」時</strong>取消縮放與位移，只保留描邊加粗與 0.15 秒淡入，
+但<strong>觸覺保留</strong> —— 把回饋一起關掉，開這個設定的人會完全不知道轉完了。
+</p></div>
+</div></div></section>
+
+<div class="closing">
+<p class="sig">S2 交付 · 待 PM 核可</p>
+<p>9 個 SVG 在 <code>Design/icons/</code>，匯入時務必設 Template Rendering。
+待裁示的是菜系角標那一項（第 03 節）—— 其餘可直接實作。</p>
+</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var NS="http://www.w3.org/2000/svg";
+function el(t,a){var n=document.createElementNS(NS,t);for(var k in a)n.setAttribute(k,a[k]);return n;}
+var ICONS={"form-bread": ["M12 2 L2.6 19 A10.9 10.9 0 0 0 21.4 19 Z", "M9.6 13 h0.01", "M13.8 14.6 h0.01", "M11.8 9.4 h0.01"], "form-hotpot": ["M4.4 12.4 V16.4 A7.6 5.2 0 0 0 19.6 16.4 V12.4 Z", "M2.6 12.4 H21.4", "M2.6 12.4 L0.9 10.2", "M21.4 12.4 L23.1 10.2", "M12 9.6 q2 -2.6 0 -5.2", "M8 9.6 q1.6 -2 0 -4"], "form-light": ["M2.4 14.4 A9.6 6.4 0 0 0 21.6 14.4 Z", "M1.2 14.4 H22.8", "M12 12.4 q-0.8 -6.8 6.2 -8.4 q0.8 7 -6.2 8.4 Z"], "form-meat": ["M3.4 12.4 a7.2 7 0 1 0 14.4 0 a7.2 7 0 1 0 -14.4 0 Z", "M17.8 12.4 H20.4", "M22 10.6 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0", "M22 14.2 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0", "M7 13 q3.6 -1.8 7.2 0"], "form-noodles": ["M2.2 12.6 A7.4 7.8 0 0 0 17 12.6 Z", "M1 12.6 H18.2", "M10.5 11 L21 2.6", "M12.6 11.6 L22 4"], "form-rice": ["M2.4 13.8 A9.6 7.2 0 0 0 21.6 13.8 Z", "M1.2 13.8 H22.8", "M6.4 13.8 q5.6 -4.6 11.2 0", "M8.5 8 h0.01", "M12 6.6 h0.01", "M15.5 8 h0.01"], "form-snack": ["M2.6 21.4 L21.4 2.6", "M7.5 16.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0", "M12 12 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0", "M16.5 7.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"], "form-soup": ["M8 3.4 a4.6 4.6 0 1 0 0.01 0 Z", "M11.3 11.3 L21 21"], "form-unknown": ["M6.2 8.6 V21.4", "M3 2.6 V8.6 H9.4 V2.6", "M6.2 2.6 V8.6", "M17.4 2.6 q3.6 4.4 0 8.8 V21.4"]};
+/* 8 格演示盤，色與墨色取自 Theme 規格定案值 */
+var SLOTS=[["牛肉麵","#B25239","#FFFFFF","form-noodles"],["滷肉飯","#D19A40","#241E18","form-rice"],
+["韓式人參雞湯","#9AA65C","#241E18","form-soup"],["麻辣火鍋","#557F68","#FFFFFF","form-hotpot"],
+["蚵仔煎","#4A7E8B","#FFFFFF","form-snack"],["越式法國麵包","#5A6E9E","#FFFFFF","form-bread"],
+["低卡餐盒","#8B6A9E","#FFFFFF","form-light"],["美式牛排","#A5603F","#FFFFFF","form-meat"]];
+var WINNER=1;
+var svg=document.getElementById("demo"), cx=150, cy=150, r=132, n=SLOTS.length, step=360/n;
+
+function wrap(s){var c=Array.from(s);if(c.length<=4)return[s];
+  var h=Math.ceil(c.length/2);return[c.slice(0,h).join(""),c.slice(h).join("")];}
+
+var groups=[];
+function build(){
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  groups=[];
+  for(var i=0;i<n;i++){
+    var a0=i*step-90,a1=a0+step,mid=a0+step/2;
+    var g=el("g",{"transform-origin":cx+"px "+cy+"px"});
+    var p0=[cx+r*Math.cos(a0*Math.PI/180),cy+r*Math.sin(a0*Math.PI/180)];
+    var p1=[cx+r*Math.cos(a1*Math.PI/180),cy+r*Math.sin(a1*Math.PI/180)];
+    var seg=el("path",{d:"M "+cx+" "+cy+" L "+p0[0].toFixed(1)+" "+p0[1].toFixed(1)+
+      " A "+r+" "+r+" 0 0 1 "+p1[0].toFixed(1)+" "+p1[1].toFixed(1)+" Z",
+      fill:SLOTS[i][1],stroke:"rgba(255,255,255,.85)","stroke-width":1.5});
+    g.appendChild(seg);
+    var flip=((mid+90)%360+360)%360; flip=flip>90&&flip<270;
+    var rot=flip?mid+180:mid, side=flip?-1:1;
+    var lab=el("g",{transform:"translate("+cx+","+cy+") rotate("+rot+")"});
+    var ic=el("g",{fill:"none",stroke:SLOTS[i][2],"stroke-width":1.6,
+      "stroke-linecap":"round","stroke-linejoin":"round",
+      transform:"translate("+(side*r*0.44)+",0) scale("+(20/24)+") translate(-12,-12)"});
+    ICONS[SLOTS[i][3]].forEach(function(d){ic.appendChild(el("path",{d:d}));});
+    lab.appendChild(ic);
+    var lines=wrap(SLOTS[i][0]), fs=12, top=-((lines.length-1)*fs*1.12)/2;
+    lines.forEach(function(t,j){
+      var tx=el("text",{x:side*r*0.755,y:top+j*fs*1.12,"text-anchor":"middle",
+        "dominant-baseline":"central","font-size":fs,"font-weight":"600",fill:SLOTS[i][2],
+        "font-family":'"PingFang TC","Noto Sans TC",system-ui,sans-serif'});
+      tx.textContent=t; lab.appendChild(tx);
+    });
+    g.appendChild(lab);
+    g.style.transition="";
+    svg.appendChild(g);
+    groups.push({g:g,seg:seg});
+  }
+}
+build();
+
+var stage=document.getElementById("stage"), sheet=document.getElementById("sheet");
+var name=document.getElementById("sheet-name"), btn=document.getElementById("play");
+var timers=[];
+function reset(){
+  timers.forEach(clearTimeout); timers=[];
+  groups.forEach(function(o){
+    o.g.style.transition="none"; o.g.style.opacity=1; o.g.style.transform="none";
+    o.seg.setAttribute("stroke-width",1.5);
+    o.seg.setAttribute("stroke","rgba(255,255,255,.85)");
+  });
+  stage.classList.remove("on");
+  sheet.style.transition="none"; sheet.style.transform="translateY(105%)";
+}
+function play(){
+  reset();
+  var reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  name.textContent=SLOTS[WINNER][0];
+  timers.push(setTimeout(function(){
+    groups.forEach(function(o,i){
+      if(i===WINNER){
+        /* 第一層：中選格放大 4.5% + 描邊加粗 */
+        o.g.style.transition = reduce ? "none" : "transform .28s cubic-bezier(.34,1.4,.64,1)";
+        if(!reduce) o.g.style.transform="scale(1.045)";
+        o.seg.setAttribute("stroke-width",3.5);
+        o.seg.setAttribute("stroke",SLOTS[i][2]);
+      }else{
+        o.g.style.transition="opacity .2s ease-out";
+        o.g.style.opacity=.55;
+      }
+    });
+  },20));
+  /* 第三層：0.28s 起，壓暗 + sheet 推入 */
+  timers.push(setTimeout(function(){
+    stage.classList.add("on");
+    sheet.style.transition = reduce ? "opacity .15s linear"
+      : "transform .32s cubic-bezier(.32,1.12,.62,1)";
+    sheet.style.transform="translateY(0)";
+  },300));
+  timers.push(setTimeout(reset,2600));
+}
+btn.addEventListener("click",play);
+})();
+</script>
+
+</body>
+</html>

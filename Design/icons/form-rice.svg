@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="飯食">
+  <title>飯食</title>
+  <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2.4 13.8 A9.6 7.2 0 0 0 21.6 13.8 Z"/>
+    <path d="M1.2 13.8 H22.8"/>
+    <path d="M6.4 13.8 q5.6 -4.6 11.2 0"/>
+    <path d="M8.5 8 h0.01"/>
+    <path d="M12 6.6 h0.01"/>
+    <path d="M15.5 8 h0.01"/>
+  </g>
+</svg>
