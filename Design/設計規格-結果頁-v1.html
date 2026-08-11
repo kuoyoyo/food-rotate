@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>食物轉盤 — 結果頁規格 v1</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; }
+</style>
+</head>
+<body>
+<style>
+:root{--paper:#E7E6DF;--ink:#191A16;--ink-mid:#55574E;--ink-soft:#7E8077;--rule:#C7C6BD;--bad:#9B2F26;--ok:#3F6B45;
+--mono:ui-monospace,"SF Mono",Menlo,monospace;--sans:"PingFang TC","Noto Sans TC",system-ui,sans-serif;
+--gut:clamp(1.25rem,4vw,3rem)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#141512;--ink:#E5E4DB;--ink-mid:#9B9D92;--ink-soft:#75776D;--rule:#33352E;--bad:#E08A80;--ok:#8FBF8E}}
+:root[data-theme="dark"]{--paper:#141512;--ink:#E5E4DB;--ink-mid:#9B9D92;--ink-soft:#75776D;--rule:#33352E;--bad:#E08A80;--ok:#8FBF8E}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.72;-webkit-font-smoothing:antialiased}
+.wrap{max-width:74rem;margin:0 auto;padding:0 var(--gut) 5rem}
+.masthead{border-bottom:1.5px solid var(--ink);padding:clamp(2.5rem,7vw,4.5rem) 0 1.4rem;display:grid;gap:1.4rem}
+.stamp{font-family:var(--mono);font-size:.7rem;letter-spacing:.17em;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:.45rem 1.6rem}
+h1{font-size:clamp(2.1rem,6.5vw,3.8rem);line-height:1.06;letter-spacing:-.03em;font-weight:600;margin:0;text-wrap:balance}
+.dek{color:var(--ink-mid);max-width:44ch;margin:0}
+section{padding-top:clamp(3rem,7vw,5rem)}
+.row{display:grid;grid-template-columns:8.5rem minmax(0,1fr);gap:0 2.5rem;align-items:start}
+@media(max-width:860px){.row{grid-template-columns:minmax(0,1fr);gap:.75rem}}
+.label{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;color:var(--ink-soft);padding-top:.55rem;border-top:1px solid var(--ink);position:sticky;top:1.5rem}
+@media(max-width:860px){.label{position:static}}
+.col>*+*{margin-top:1.05rem}
+h2{font-size:clamp(1.5rem,3.4vw,2.2rem);line-height:1.25;letter-spacing:-.02em;font-weight:600;margin:0 0 .4rem;text-wrap:balance}
+p{margin:0;max-width:62ch;color:var(--ink-mid)}
+p strong{color:var(--ink);font-weight:600}
+code{font-family:var(--mono);font-size:.86em}
+.note{border-left:2px solid var(--ink);padding-left:1rem}
+.note.warn{border-left-color:var(--bad)}
+.tl{width:100%;font-size:.85rem;margin-top:1.5rem;display:block;overflow-x:auto}
+.tl table{width:100%;border-collapse:collapse;min-width:30rem}
+th,td{text-align:left;padding:.45rem .7rem;border-bottom:1px solid var(--rule)}
+th{font-family:var(--mono);font-size:.65rem;letter-spacing:.11em;color:var(--ink-soft);font-weight:400;white-space:nowrap}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pass{color:var(--ok);font-weight:600}.fail{color:var(--bad);font-weight:600}
+.sw{display:inline-block;width:1.4rem;height:1.4rem;border-radius:4px;border:1px solid rgba(128,128,128,.35);vertical-align:middle;margin-right:.5rem}
+
+/* ---- 手機舞台 ---- */
+.stagewrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));gap:2rem;margin-top:1.75rem;align-items:start}
+.phone{position:relative;width:min(19rem,80vw);aspect-ratio:9/18.5;margin:0 auto;background:#EFEAE0;border:9px solid #CFC7B8;border-radius:2.6rem;overflow:hidden;box-shadow:0 14px 34px -14px rgba(0,0,0,.45);touch-action:none}
+.wheelbg{position:absolute;inset:0;display:grid;place-items:center;padding-top:2.4rem}
+.wheelbg svg{width:82%;height:auto}
+.dimmer{position:absolute;inset:0;background:#1A1714;opacity:0;pointer-events:none}
+/* 結果頁：所有值直接取自規格 */
+.sheet{position:absolute;left:0;right:0;bottom:0;height:88%;background:#1A1714;color:#EFE9DE;
+  border-radius:20px 20px 0 0;transform:translateY(100%);display:grid;grid-template-rows:44px 1fr;overflow:hidden}
+.sheet .head{position:relative;display:flex;align-items:center;justify-content:center;cursor:grab}
+.sheet .grab{width:36px;height:5px;border-radius:2.5px;background:#625E59}
+.sheet .done{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:13px;font-weight:600;color:#D9674F;background:none;border:none;cursor:pointer;padding:8px}
+.sheet .body{overflow:hidden;padding:0 20px 20px;display:grid;gap:16px;align-content:start}
+.hero{display:grid;justify-items:center;gap:6px;padding:8px 0 4px}
+.hero .sub{font-size:12px;color:#AAA59C}
+.hero .name{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.hero .tags{display:flex;gap:6px;margin-top:2px}
+.badge{height:16px;padding:0 6px;border-radius:4px;font-size:11px;font-weight:500;display:inline-flex;align-items:center;line-height:1;background:#3B3832;color:#EFE9DE}
+.badge.light{background:#DAD7D0;color:#241E18}
+.card{background:#23201B;border-radius:10px;padding:12px 14px;display:grid;gap:6px}
+.card .t{font-size:13px;font-weight:600}
+.card .t.pos{color:#8CC98A}.card .t.neg{color:#EFAE6E}
+.card li{font-size:12px;color:#EFE9DE;margin:0}
+.card ul{margin:0;padding-left:16px;display:grid;gap:3px}
+.cta{background:#D9674F;color:#1A1714;border-radius:999px;text-align:center;padding:9px;font-size:14px;font-weight:600}
+.cta.sec{background:none;color:#EFE9DE;border:1px solid #3B3832}
+.readout{margin-top:1rem;font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;color:var(--ink-soft);text-align:center}
+.readout b{color:var(--ink);font-weight:500}
+.ctrls{display:flex;gap:.5rem;justify-content:center;margin-top:1rem;flex-wrap:wrap}
+.btn{font-family:var(--sans);font-size:.85rem;font-weight:600;border:none;border-radius:999px;padding:.45rem 1.2rem;background:#9B3B2C;color:#F8F5EE;cursor:pointer}
+.btn.ghost{background:none;color:var(--ink);border:1px solid var(--rule)}
+.btn:hover{filter:brightness(1.08)}
+.closing{margin-top:clamp(3rem,7vw,5rem);border-top:1.5px solid var(--ink);padding-top:1.4rem;display:grid;gap:.7rem}
+.sig{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;color:var(--ink-soft)}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+
+<div class="wrap">
+<header class="masthead">
+  <div class="stamp"><span>食物轉盤 FOOD ROTATE</span><span>結果頁規格 v1</span>
+  <span>S3-A 第一批</span><span>2026-08-12</span><span>設計 → PM</span></div>
+  <h1>情緒最高的<br>那一秒。</h1>
+  <p class="dek">結果頁換成 overlay 之後，系統不再免費提供下拉關閉、圓角把手與導覽列。
+  這份規格把那三件補上 —— <strong>右邊的結果頁可以直接用滑鼠往下拖</strong>，
+  手感參數不是用文字描述的。</p>
+</header>
+
+<section><div class="row"><div class="label">01 — 實際操作</div><div class="col">
+<h2>拖拖看。</h2>
+<p>按「播放中選轉場」看 0.6 秒的帶入，然後<strong>按住標題列或 hero 往下拖</strong>。
+下面的讀數是即時的規格值。</p>
+
+<div class="stagewrap">
+  <div>
+    <div class="phone" id="phone">
+      <div class="wheelbg"><svg viewBox="0 0 300 300" id="wheel" role="img" aria-label="轉盤"></svg></div>
+      <div class="dimmer" id="dimmer"></div>
+      <div class="sheet" id="sheet">
+        <div class="head" id="head">
+          <div class="grab"></div>
+          <button class="done" id="done" type="button">完成</button>
+        </div>
+        <div class="body">
+          <div class="hero" id="hero">
+            <div id="heroicon"></div>
+            <div class="sub">今天就吃</div>
+            <div class="name">滷肉飯</div>
+            <div class="tags"><span class="badge">台</span><span class="badge">飯食</span></div>
+          </div>
+          <div class="card"><div class="t pos">✓ 為什麼可以吃</div>
+            <ul><li>三四十元就能解決一餐</li><li>端上來只要一分鐘</li></ul></div>
+          <div class="card"><div class="t neg">! 要注意的地方</div>
+            <ul><li>肥肉多，飽和脂肪偏高</li><li>幾乎沒有蔬菜，要另外加點</li></ul></div>
+          <div class="cta">找附近有賣的店</div>
+          <div class="cta sec">打電話問</div>
+        </div>
+      </div>
+    </div>
+    <div class="ctrls">
+      <button class="btn" id="play" type="button">播放中選轉場</button>
+      <button class="btn ghost" id="reset" type="button">重置</button>
+    </div>
+    <div class="readout" id="readout">位移 <b>0</b>pt · 壓暗 <b>0.55</b> · <b>放手會彈回</b></div>
+  </div>
+
+  <div>
+    <div class="tl"><table>
+    <thead><tr><th>手勢參數</th><th>值</th></tr></thead><tbody>
+    <tr><td>跟手</td><td class="num">1:1</td></tr>
+    <tr><td>向上拖曳阻尼</td><td class="num">0.25</td></tr>
+    <tr><td>關閉門檻（位移）</td><td class="num">≥ 120pt</td></tr>
+    <tr><td>關閉門檻（速度）</td><td class="num">≥ 800pt/s</td></tr>
+    <tr><td>未達門檻</td><td class="num">spring(0.3, 0.85)</td></tr>
+    <tr><td>達到門檻</td><td class="num">easeOut(0.22)</td></tr>
+    <tr><td>壓暗層</td><td class="num">0.55 × (1 − 位移/240)</td></tr>
+    </tbody></table></div>
+
+    <div class="note" style="margin-top:1.5rem"><p>
+    <strong>門檻 120 與壓暗除數 240 不同是刻意的</strong> ——
+    拖到關閉門檻時，背景剛好回亮一半。那是「再拉一點就會關」的視覺提示。
+    </p></div>
+
+    <div class="note warn" style="margin-top:1.25rem"><p>
+    <strong>捲動與關閉搶同一個方向。</strong> 內容捲到頂之後再往下拉才觸發關閉 ——
+    這原本是系統 sheet 免費給的，換成 overlay 要自己做。<br><br>
+    若實作成本高，退路是<strong>只有標題列與 hero 可拖曳關閉</strong>（就是這個演示的做法），
+    不需要判斷捲動位置。設計可以接受這個退路。
+    </p></div>
+  </div>
+</div>
+</div></div></section>
+
+<section><div class="row"><div class="label">02 — 深色</div><div class="col">
+<h2>深色只到結果頁本身。</h2>
+<p>它開出去的「附近的店」維持淺色 —— 那是要停留、讀地址、看地圖的工作畫面。
+深色的作用是讓中選的菜浮起來，看完就關掉，<strong>它是一個瞬間，不是一個深色模式</strong>。</p>
+
+<div class="tl"><table>
+<thead><tr><th>元素</th><th>值</th><th>底</th><th>對比</th></tr></thead><tbody>
+<tr><td><span class="sw" style="background:#EFE9DE"></span>主要文字</td><td class="num">#EFE9DE</td><td class="num">#23201B</td><td class="num pass">13.43 ✓</td></tr>
+<tr><td><span class="sw" style="background:#AAA59C"></span>次要文字 <em>新增</em></td><td class="num">#AAA59C</td><td class="num">#23201B</td><td class="num pass">6.62 ✓</td></tr>
+<tr><td><span class="sw" style="background:#D9674F"></span>主色</td><td class="num">#D9674F</td><td class="num">#1A1714</td><td class="num pass">5.10 ✓</td></tr>
+<tr><td><span class="sw" style="background:#8CC98A"></span>優點綠 <em>新增</em></td><td class="num">#8CC98A</td><td class="num">#23201B</td><td class="num pass">8.38 ✓</td></tr>
+<tr><td><span class="sw" style="background:#EFAE6E"></span>缺點橘 <em>新增</em></td><td class="num">#EFAE6E</td><td class="num">#23201B</td><td class="num pass">8.46 ✓</td></tr>
+<tr><td><span class="sw" style="background:#625E59"></span>把手 <em>新增</em></td><td class="num">#625E59</td><td class="num">#1A1714</td><td class="num">—</td></tr>
+</tbody></table></div>
+
+<div class="note warn" style="margin-top:1.75rem"><p>
+<strong>深色模式的主要按鈕不能用白字。</strong> 底是提亮後的主色 <code>#D9674F</code>，
+白字對比只有 <span class="fail">3.50</span>，不合格。改用深墨 <code>#1A1714</code> 是
+<span class="pass">5.10</span> ✓。<br><br>
+淺色模式相反（淺字疊 <code>#9B3B2C</code> 是 6.31）。
+<strong>這是深色最容易踩的坑 —— 提亮後的主色亮度已接近中間值，白字反而讀不到。</strong>
+</p></div>
+</div></div></section>
+
+<section><div class="row"><div class="label">03 — 角標</div><div class="col">
+<h2>一個元件，兩種配色。</h2>
+<p>結果頁 hero 下方同時顯示菜系與吃法，S4 的候選清單用同一個元件。
+radius 4、高 16、字級 micro、中性灰。</p>
+<div style="display:flex;gap:2rem;flex-wrap:wrap;margin-top:1.5rem">
+  <div style="background:#1A1714;padding:1rem 1.25rem;border-radius:12px;display:flex;gap:6px;flex-wrap:wrap">
+    <span class="badge">台</span><span class="badge">日</span><span class="badge">東南</span>
+    <span class="badge">南亞</span><span class="badge">墨</span><span class="badge">飯食</span><span class="badge">鍋物</span>
+  </div>
+  <div style="background:#EFEAE0;padding:1rem 1.25rem;border-radius:12px;display:flex;gap:6px;flex-wrap:wrap">
+    <span class="badge light">台</span><span class="badge light">日</span><span class="badge light">東南</span>
+    <span class="badge light">南亞</span><span class="badge light">墨</span><span class="badge light">飯食</span><span class="badge light">鍋物</span>
+  </div>
+</div>
+<div class="note" style="margin-top:1.5rem"><p>
+<strong>沒有菜系標籤時不顯示</strong>，不要顯示「未分類」—— 那是把資料缺口攤給使用者看。
+（目前只有「低卡餐盒」一道沒有菜系。）
+</p></div>
+</div></div></section>
+
+<div class="closing">
+<p class="sig">S3-A 第一批交付 · 待 PM 核可</p>
+<p>核可後工程可直接開工 —— 這批是 S3 的架構前提。
+第二批（第一屏壓縮、四種提示分權重、語意色）與第三批（S4 篩選器與候選清單）接著交。</p>
+</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var NS="http://www.w3.org/2000/svg";
+function el(t,a){var n=document.createElementNS(NS,t);for(var k in a)n.setAttribute(k,a[k]);return n;}
+var ICONS={"form-bread": ["M12 2 L2.6 19 A10.9 10.9 0 0 0 21.4 19 Z", "M9.6 13 h0.01", "M13.8 14.6 h0.01", "M11.8 9.4 h0.01"], "form-hotpot": ["M4.4 12.4 V16.4 A7.6 5.2 0 0 0 19.6 16.4 V12.4 Z", "M2.6 12.4 H21.4", "M2.6 12.4 L0.9 10.2", "M21.4 12.4 L23.1 10.2", "M12 9.6 q2 -2.6 0 -5.2", "M8 9.6 q1.6 -2 0 -4"], "form-light": ["M2.4 14.4 A9.6 6.4 0 0 0 21.6 14.4 Z", "M1.2 14.4 H22.8", "M12 12.4 q-0.8 -6.8 6.2 -8.4 q0.8 7 -6.2 8.4 Z"], "form-meat": ["M3.4 12.4 a7.2 7 0 1 0 14.4 0 a7.2 7 0 1 0 -14.4 0 Z", "M17.8 12.4 H20.4", "M22 10.6 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0", "M22 14.2 m -1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0", "M7 13 q3.6 -1.8 7.2 0"], "form-noodles": ["M2.2 12.6 A7.4 7.8 0 0 0 17 12.6 Z", "M1 12.6 H18.2", "M10.5 11 L21 2.6", "M12.6 11.6 L22 4"], "form-rice": ["M2.4 13.8 A9.6 7.2 0 0 0 21.6 13.8 Z", "M1.2 13.8 H22.8", "M6.4 13.8 q5.6 -4.6 11.2 0", "M8.5 8 h0.01", "M12 6.6 h0.01", "M15.5 8 h0.01"], "form-snack": ["M2.6 21.4 L21.4 2.6", "M7.5 16.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0", "M12 12 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0", "M16.5 7.5 m -2.6 0 a2.6 2.6 0 1 0 5.2 0 a2.6 2.6 0 1 0 -5.2 0"], "form-soup": ["M8 3.4 a4.6 4.6 0 1 0 0.01 0 Z", "M11.3 11.3 L21 21"], "form-unknown": ["M6.2 8.6 V21.4", "M3 2.6 V8.6 H9.4 V2.6", "M6.2 2.6 V8.6", "M17.4 2.6 q3.6 4.4 0 8.8 V21.4"]};
+/* 8 格盤，色與墨色取自 Theme 規格定案值；中選格是「滷肉飯」 */
+var SLOTS=[["牛肉麵","#B25239","#FFFFFF","form-noodles"],["滷肉飯","#D19A40","#241E18","form-rice"],
+["韓式人參雞湯","#9AA65C","#241E18","form-soup"],["麻辣火鍋","#557F68","#FFFFFF","form-hotpot"],
+["蚵仔煎","#4A7E8B","#FFFFFF","form-snack"],["越式法國麵包","#5A6E9E","#FFFFFF","form-bread"],
+["低卡餐盒","#8B6A9E","#FFFFFF","form-light"],["美式牛排","#A5603F","#FFFFFF","form-meat"]];
+var WINNER=1, svg=document.getElementById("wheel"), cx=150,cy=150,r=130,n=8,step=45;
+
+function wrap(s){var c=Array.from(s);if(c.length<=4)return[s];
+  var h=Math.ceil(c.length/2);return[c.slice(0,h).join(""),c.slice(h).join("")];}
+
+function build(){
+  for(var i=0;i<n;i++){
+    var a0=i*step-90,a1=a0+step,mid=a0+step/2;
+    var p0=[cx+r*Math.cos(a0*Math.PI/180),cy+r*Math.sin(a0*Math.PI/180)];
+    var p1=[cx+r*Math.cos(a1*Math.PI/180),cy+r*Math.sin(a1*Math.PI/180)];
+    svg.appendChild(el("path",{d:"M "+cx+" "+cy+" L "+p0[0].toFixed(1)+" "+p0[1].toFixed(1)+
+      " A "+r+" "+r+" 0 0 1 "+p1[0].toFixed(1)+" "+p1[1].toFixed(1)+" Z",
+      fill:SLOTS[i][1],stroke:"rgba(255,255,255,.85)","stroke-width":1.5}));
+    var flip=((mid+90)%360+360)%360; flip=flip>90&&flip<270;
+    var rot=flip?mid+180:mid, side=flip?-1:1;
+    var lab=el("g",{transform:"translate("+cx+","+cy+") rotate("+rot+")"});
+    /* S2 決定：圖示恆正立，所以要把該格角度抵消掉 */
+    var ig=el("g",{transform:"translate("+(side*r*0.44)+",0) rotate("+(-rot)+") scale("+(20/24)+") translate(-12,-12)",
+      fill:"none",stroke:SLOTS[i][2],"stroke-width":1.6,"stroke-linecap":"round","stroke-linejoin":"round"});
+    ICONS[SLOTS[i][3]].forEach(function(d){ig.appendChild(el("path",{d:d}));});
+    lab.appendChild(ig);
+    var lines=wrap(SLOTS[i][0]),fs=11.5,top=-((lines.length-1)*fs*1.12)/2;
+    lines.forEach(function(t,j){
+      var tx=el("text",{x:side*r*0.755,y:top+j*fs*1.12,"text-anchor":"middle","dominant-baseline":"central",
+        "font-size":fs,"font-weight":"600",fill:SLOTS[i][2],
+        "font-family":'"PingFang TC","Noto Sans TC",system-ui,sans-serif'});
+      tx.textContent=t; lab.appendChild(tx);
+    });
+    svg.appendChild(lab);
+  }
+}
+build();
+
+/* hero 圖示：與中選格同一個資產，顏色是 Dark.sauce */
+var hi=document.getElementById("heroicon");
+hi.innerHTML='<svg width="76" height="76" viewBox="0 0 24 24"><g fill="none" stroke="#D9674F" '+
+  'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+
+  ICONS[SLOTS[WINNER][3]].map(function(d){return '<path d="'+d+'"/>';}).join("")+'</g></svg>';
+
+var sheet=document.getElementById("sheet"), dim=document.getElementById("dimmer"),
+    head=document.getElementById("head"), hero=document.getElementById("hero"),
+    readout=document.getElementById("readout"), phone=document.getElementById("phone");
+var OPEN=false, dy=0, dragging=false, startY=0, lastY=0, lastT=0, vel=0;
+
+function paint(){
+  sheet.style.transform="translateY("+(OPEN? dy : sheet.offsetHeight)+"px)";
+  var prog=Math.min(Math.max(dy,0)/240,1);
+  dim.style.opacity=(OPEN? 0.55*(1-prog) : 0).toFixed(3);
+  if(OPEN) readout.innerHTML="位移 <b>"+Math.round(Math.max(dy,0))+"</b>pt · 壓暗 <b>"+
+    (0.55*(1-prog)).toFixed(2)+"</b> · <b>"+(dy>=120?"放手會關閉":"放手會彈回")+"</b>";
+}
+function open(){
+  OPEN=true; dy=0;
+  sheet.style.transition="transform .32s cubic-bezier(.32,1.12,.62,1)";
+  dim.style.transition="opacity .22s ease-in-out";
+  requestAnimationFrame(paint);
+}
+function close(fast){
+  sheet.style.transition="transform "+(fast?".22s ease-out":".3s cubic-bezier(.3,1.1,.6,1)");
+  dim.style.transition="opacity .22s ease-in-out";
+  OPEN=false; dy=0; paint();
+  readout.innerHTML="位移 <b>0</b>pt · 壓暗 <b>0.00</b> · <b>已關閉</b>";
+}
+function down(e){
+  if(!OPEN) return;
+  dragging=true; startY=lastY=(e.touches?e.touches[0].clientY:e.clientY);
+  lastT=performance.now(); vel=0;
+  sheet.style.transition="none"; dim.style.transition="none";
+  e.preventDefault();
+}
+function move(e){
+  if(!dragging) return;
+  var y=(e.touches?e.touches[0].clientY:e.clientY), t=performance.now();
+  var raw=y-startY;
+  /* 向上拖曳阻尼 0.25 */
+  dy = raw<0 ? raw*0.25 : raw;
+  if(t>lastT){ vel=(y-lastY)/(t-lastT)*1000; lastT=t; lastY=y; }
+  paint(); e.preventDefault();
+}
+function up(){
+  if(!dragging) return;
+  dragging=false;
+  if(dy>=120 || vel>=800) close(true);
+  else { dy=0; sheet.style.transition="transform .3s cubic-bezier(.3,1.1,.6,1)";
+         dim.style.transition="opacity .22s ease-in-out"; paint(); }
+}
+[head,hero].forEach(function(z){
+  z.addEventListener("mousedown",down); z.addEventListener("touchstart",down,{passive:false});
+});
+window.addEventListener("mousemove",move); window.addEventListener("touchmove",move,{passive:false});
+window.addEventListener("mouseup",up); window.addEventListener("touchend",up);
+document.getElementById("play").addEventListener("click",function(){ close(); setTimeout(open,180); });
+document.getElementById("reset").addEventListener("click",function(){ close(); });
+document.getElementById("done").addEventListener("click",function(){ close(true); });
+paint();
+})();
+</script>
+
+</body>
+</html>
