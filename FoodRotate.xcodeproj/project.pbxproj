@@ -20,6 +20,13 @@
 			remoteGlobalIDString = A00000000000000000000014;
 			remoteInfo = FoodRotateWidgetExtension;
 		};
+		A0000000000000000000002F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A00000000000000000000004;
+			remoteInfo = FoodRotate;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -42,6 +49,7 @@
 		A00000000000000000000011 /* DEVLOG.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEVLOG.md; sourceTree = "<group>"; };
 		A00000000000000000000012 /* GenerationActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerationActivityAttributes.swift; sourceTree = "<group>"; };
 		A00000000000000000000013 /* FoodRotateWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FoodRotateWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000026 /* FoodRotateTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FoodRotateTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -53,6 +61,11 @@
 		A00000000000000000000015 /* FoodRotateWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = FoodRotateWidget;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000027 /* FoodRotateTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FoodRotateTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -72,6 +85,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A0000000000000000000002A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -80,6 +100,7 @@
 			children = (
 				A00000000000000000000009 /* FoodRotate */,
 				A00000000000000000000015 /* FoodRotateWidget */,
+				A00000000000000000000027 /* FoodRotateTests */,
 				A00000000000000000000017 /* Shared */,
 				A00000000000000000000010 /* Info.plist */,
 				A00000000000000000000011 /* DEVLOG.md */,
@@ -92,6 +113,7 @@
 			children = (
 				A00000000000000000000005 /* FoodRotate.app */,
 				A00000000000000000000013 /* FoodRotateWidgetExtension.appex */,
+				A00000000000000000000026 /* FoodRotateTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -153,6 +175,29 @@
 			productReference = A00000000000000000000013 /* FoodRotateWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		A00000000000000000000028 /* FoodRotateTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A0000000000000000000002C /* Build configuration list for PBXNativeTarget "FoodRotateTests" */;
+			buildPhases = (
+				A00000000000000000000029 /* Sources */,
+				A0000000000000000000002A /* Frameworks */,
+				A0000000000000000000002B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A00000000000000000000030 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A00000000000000000000027 /* FoodRotateTests */,
+			);
+			name = FoodRotateTests;
+			packageProductDependencies = (
+			);
+			productName = FoodRotateTests;
+			productReference = A00000000000000000000026 /* FoodRotateTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -168,6 +213,10 @@
 					};
 					A00000000000000000000014 = {
 						CreatedOnToolsVersion = 26.6;
+					};
+					A00000000000000000000028 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = A00000000000000000000004;
 					};
 				};
 			};
@@ -188,6 +237,7 @@
 			targets = (
 				A00000000000000000000004 /* FoodRotate */,
 				A00000000000000000000014 /* FoodRotateWidgetExtension */,
+				A00000000000000000000028 /* FoodRotateTests */,
 			);
 		};
 /* End PBXProject section */
@@ -201,6 +251,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A0000000000000000000001A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A0000000000000000000002B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -226,6 +283,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A00000000000000000000029 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -233,6 +297,11 @@
 			isa = PBXTargetDependency;
 			target = A00000000000000000000014 /* FoodRotateWidgetExtension */;
 			targetProxy = A00000000000000000000023 /* PBXContainerItemProxy */;
+		};
+		A00000000000000000000030 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A00000000000000000000004 /* FoodRotate */;
+			targetProxy = A0000000000000000000002F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -408,6 +477,40 @@
 			};
 			name = Release;
 		};
+		A0000000000000000000002D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 856TGM9976;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kuoyo.foodrotate.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FoodRotate.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FoodRotate";
+			};
+			name = Debug;
+		};
+		A0000000000000000000002E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 856TGM9976;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kuoyo.foodrotate.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FoodRotate.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FoodRotate";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -434,6 +537,15 @@
 			buildConfigurations = (
 				A0000000000000000000001B /* Debug */,
 				A0000000000000000000001C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A0000000000000000000002C /* Build configuration list for PBXNativeTarget "FoodRotateTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A0000000000000000000002D /* Debug */,
+				A0000000000000000000002E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
