@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="麵食">
+  <title>麵食</title>
+  <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2.2 12.6 A7.4 7.8 0 0 0 17 12.6 Z"/>
+    <path d="M1 12.6 H18.2"/>
+    <path d="M10.5 11 L21 2.6"/>
+    <path d="M12.6 11.6 L22 4"/>
+  </g>
+</svg>
