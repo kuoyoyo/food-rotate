@@ -20,12 +20,30 @@ enum FoodDataAudit {
     /// 本來就允許留白。
     static let iconDimensions: [FoodTag.Dimension] = [.cuisine, .form]
 
+    /// **刻意**沒有菜系的料理：`id` → 為什麼。
+    ///
+    /// 有些東西本來就不屬於任何一國菜，硬塞一個菜系會製造錯誤的篩選結果
+    /// （標「台式」的話，選台式的人會抽到一個沒有台灣味的餐盒）。這種情況要能豁免，
+    /// 否則檢查會永遠叫，久了就沒有人看 —— 一個天天喊狼來了的檢查等於沒有檢查。
+    ///
+    /// value 是原因不是 `Bool`，**強迫加進來的人寫下理由**，這份清單才不會變成
+    /// 「檢查太吵就丟進去」的垃圾桶。
+    static let cuisineExemptions: [String: String] = [
+        "low-calorie-bento": "便利商店的低卡餐盒不屬於任何一國菜，改由圖示系統的 fallback 接住"
+        // 出處：`PM提案-7道菜補標籤-待核可.md` 第一節，2026-08-11
+    ]
+
     enum Finding: Equatable, Sendable {
         /// 兩道菜共用同一個 `id`。抽樣時的 `seen` 去重會把後面那道當成重複而丟掉。
         case duplicateID(id: String, names: [String])
 
         /// 這道菜在圖示需要的維度上沒有任何標籤，S2 之後會沒有圖可用。
         case missingIconDimension(id: String, name: String, dimension: FoodTag.Dimension)
+
+        /// 豁免已經沒有意義了 —— 這道菜現在有菜系標籤。
+        ///
+        /// 豁免清單不會自己過期，留著會讓下一個真正的缺漏被靜靜吃掉。
+        case staleCuisineExemption(id: String, name: String)
     }
 
     static func findings(in items: [FoodItem]) -> [Finding] {
@@ -44,7 +62,17 @@ enum FoodDataAudit {
         }
 
         for item in items {
+            let isExempt = cuisineExemptions[item.id] != nil
+            let hasCuisine = !item.tags(in: .cuisine).isEmpty
+
+            if isExempt, hasCuisine {
+                results.append(.staleCuisineExemption(id: item.id, name: item.name))
+            }
+
             for dimension in iconDimensions where item.tags(in: dimension).isEmpty {
+                // 被豁免的只擋菜系那一條，吃法照樣要有 —— 豁免的理由是「不屬於任何一國菜」，
+                // 不是「這道菜什麼標籤都不用掛」。
+                if dimension == .cuisine, isExempt { continue }
                 results.append(
                     .missingIconDimension(id: item.id, name: item.name, dimension: dimension)
                 )
@@ -65,6 +93,8 @@ enum FoodDataAudit {
                 lines.append("  • id 重複「\(id)」：\(names.joined(separator: "、"))")
             case let .missingIconDimension(id, name, dimension):
                 lines.append("  • \(name)（\(id)）少了「\(dimension.rawValue)」維度的標籤")
+            case let .staleCuisineExemption(id, name):
+                lines.append("  • \(name)（\(id)）已經有菜系標籤了，把它從 cuisineExemptions 移除")
             }
         }
         return lines.joined(separator: "\n")

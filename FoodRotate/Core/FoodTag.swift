@@ -34,6 +34,16 @@ enum FoodTag: String, Codable, Hashable, Sendable, CaseIterable {
     case bread = "麵包餅皮"
     case lightMeal = "輕食"
 
+    // 「肉食」是後補的第八個吃法。前七個接不住「一塊肉當主角」的西式菜 ——
+    // 牛排、烤肋排、燉牛肉在那七個裡面一個都不對，硬掛「小吃」的話，
+    // 選小吃的人會抽到五百元的牛排。
+    //
+    // 命名一度定為「主餐」，改掉是因為那是 course 的概念（前菜／主餐／甜點），
+    // 跟這個維度不同軸：其餘七個講的都是「主體是什麼形態」。同一列裡混一個
+    // 不同分類軸的詞，使用者會覺得有一個是外來的。「肉食」跟「麵食」「飯食」
+    // 同一個構詞，主體是什麼就叫什麼食。
+    case meatDish = "肉食"
+
     // MARK: 情境
     case breakfast = "早餐"
     case lunch = "午餐"
@@ -68,7 +78,7 @@ enum FoodTag: String, Codable, Hashable, Sendable, CaseIterable {
         case .taiwanese, .chinese, .japanese, .korean, .southeastAsian,
              .southAsian, .italian, .american, .european, .mexican:
             .cuisine
-        case .noodles, .rice, .soupDish, .hotpot, .snack, .bread, .lightMeal:
+        case .noodles, .rice, .soupDish, .hotpot, .snack, .bread, .lightMeal, .meatDish:
             .form
         case .breakfast, .lunch, .dinner, .lateNight:
             .occasion
