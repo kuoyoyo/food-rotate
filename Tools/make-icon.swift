@@ -3,7 +3,8 @@
 //
 //  用程式畫而不是拉圖，是為了讓 icon 的八格配色跟 App 內的轉盤同源：
 //  兩邊都讀 `FoodRotate/DesignTokens.swift`，改了 token 重跑這支就會跟著動。
-//  但**同源不等於同值** —— icon 版會再套一道加深，見下方 `deepenedForIcon`。
+//  但**同源不等於同值** —— icon 版會再套一道加深（`DesignTokens.deepenedForIcon`），
+//  因為 icon 在桌面上只有 60pt，App 裡那組色會糊成一團灰。
 //
 //  這個檔案放在專案根目錄的 Tools/ 底下，不在 FoodRotate/ 同步資料夾內，
 //  所以不會被當成 App 的原始碼編進去。
@@ -26,32 +27,11 @@ struct MakeIcon {
 
     // MARK: - 配色（與 App 同一份 token，另外加深）
 
-    /// icon 版的加深轉換。
-    ///
-    /// App 裡的轉盤有大片留白襯著，icon 在桌面上只有 60 點大小，同一組色會糊成一團灰，
-    /// 所以 icon 需要更深的版本。這道轉換**必須留著**，不能把兩邊壓成同一組數值
-    /// （見 `Design/PM決策-視覺方向v1-回覆.md` 第四節）。
-    ///
-    /// **但轉換的規則 S1a 還沒定案，所以這裡直接停。**
-    /// 舊版是一組手調的數值，那是對著改版前的粉彩色盤調出來的；B（灶）方案的色票換掉之後，
-    /// 那組數值已經沒有依據，沿用等於偷渡一組沒有人審過的顏色。
-    static func deepenedForIcon(_ token: DesignTokens.RGB) -> DesignTokens.RGB {
-        fatalError("""
-            icon 版的加深規則還沒有定案，這支暫時不能跑。
-
-            缺的是「從 DesignTokens 的轉盤八色推導出 icon 用深色」的公式，
-            要等設計師交 `設計規格-Theme-v1`（S1a）。規格到位後把這個函式實作掉即可，
-            畫圖的部分都還在。
-
-            刻意不填暫定值：icon 是出貨資產，用一組沒人審過的顏色產出來，
-            事後沒有人分得出哪個顏色是暫定的。
-            """)
-    }
-
     /// 主色・醬。icon 的指針、中心圈與刀叉都用它。
-    static var accent: CGColor {
-        deepenedForIcon(DesignTokens.sauce).cgColor
-    }
+    ///
+    /// **不套加深**：那道轉換是為了讓粉彩的盤色在 60pt 下不糊成灰，而醬本來就是深色
+    /// （規格只把公式定義在 `wheelOnLight` 母盤上）。醬再加深會壓成一團看不出色相的暗紅。
+    static let accent = DesignTokens.sauce.cgColor
 
     // MARK: - 進入點
 
@@ -59,7 +39,8 @@ struct MakeIcon {
         let size = 1024.0
 
         // 八格的顏色。淺底那套是 icon 的基準（icon 背景是暖色淺底），再套加深。
-        let palette = DesignTokens.wheelOnLight.map(deepenedForIcon)
+        // 加深公式（飽和 ×1.12、明度 ×0.86）收在 DesignTokens，跟 App 共用同一份母盤。
+        let palette = DesignTokens.wheelOnLight.map { DesignTokens.deepenedForIcon($0.fill) }
 
         // MARK: 畫布
 
