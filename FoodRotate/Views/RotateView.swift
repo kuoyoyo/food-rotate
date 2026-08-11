@@ -43,6 +43,15 @@ final class RotateViewModel {
     /// 忌口條件把候選篩光了。這時候不放寬也不硬給，直接請使用者調整。
     private(set) var isOverConstrained = false
 
+    /// 「去哪吃」這一輪找不到指定菜系的店，退回了一般餐廳。
+    ///
+    /// 跟 `relaxedDimensions` 是同一件事的兩個模式版本：**放寬了就要說**。
+    /// 以前這個退回是靜默的，使用者選了「歐陸」拿到一般餐廳而畫面上什麼都沒講。
+    private(set) var didFallBackToGeneric = false
+
+    /// 這一輪搜的是哪幾個菜系。提示文字要講出使用者選的那個詞。
+    private(set) var searchedCuisines: Set<FoodTag> = []
+
     /// 只有「去哪吃」會真的在載入。「吃什麼」是本地查表，這裡永遠是 false。
     private(set) var isLoading = false
     /// 「去哪吃」失敗的原因（沒授權、抓不到位置、地圖沒回應）。
@@ -161,14 +170,22 @@ final class RotateViewModel {
         winner = nil
         spinner.reset()
 
-        let keyword = filter.tags(in: .cuisine).map(\.rawValue).joined(separator: " ")
+        // 菜系在這個模式下只是**搜尋詞**，不是分類條件。翻譯規則與理由見
+        // `RestaurantSearchTerms`——那張表不是分類邏輯，別當成分類邏輯改。
+        let cuisines = filter.tags(in: .cuisine)
+        searchedCuisines = cuisines
+        didFallBackToGeneric = false
+
         let estimate = settings.estimatedNearbyDuration
         let startedAt = Date.now
         stage = .locating
         progressRange = startedAt...startedAt.addingTimeInterval(estimate)
-        liveActivity.start(prompt: keyword.isEmpty ? "附近的店" : keyword, estimate: estimate)
+        liveActivity.start(
+            prompt: cuisines.isEmpty ? "附近的店" : RestaurantSearchTerms.displayName(for: cuisines),
+            estimate: estimate
+        )
 
-        nearby.searchRestaurants(keyword: keyword) { [weak self] stage in
+        nearby.searchRestaurants(terms: RestaurantSearchTerms.terms(for: cuisines)) { [weak self] stage in
             self?.apply(stage: stage, startedAt: startedAt)
         }
     }
@@ -188,6 +205,7 @@ final class RotateViewModel {
 
         switch nearby.phase {
         case .results(let places):
+            didFallBackToGeneric = nearby.didFallBackToGeneric
             allItems = places.map(\.asFoodItem)
             // `asFoodItem` 裝不下座標，但導航需要它，所以另外留一份對照。
             // 用 id 對回去，因為使用者可以在卡片上改名，名字對不住。
@@ -299,6 +317,7 @@ struct RotateView: View {
                     slots: $model.wheelSlots,
                     // 「去哪吃」只吃菜系那一列，其餘維度對地圖搜尋沒有意義。
                     activeDimensions: model.source == .dishes ? FoodTag.Dimension.allCases : [.cuisine],
+                    searchesByKeyword: model.source == .restaurants,
                     radius: model.source == .restaurants ? $model.searchRadius : nil,
                     onChange: { model.load() },
                     onReroll: {
@@ -384,6 +403,15 @@ struct RotateView: View {
                 tint: .orange,
                 title: "沒有符合的料理",
                 message: "忌口條件把所有選項都篩掉了。這一項不會自動放寬，請把其中一個忌口取消再試。"
+            )
+        } else if model.didFallBackToGeneric {
+            // 「去哪吃」版的放寬提示。跟下面那個「已放寬條件」是同一條產品規則：
+            // 給了不完全符合的東西就要說出來。
+            NoticeBox(
+                symbol: "arrow.up.left.and.arrow.down.right",
+                tint: .blue,
+                title: "改列一般餐廳",
+                message: "附近找不到「\(RestaurantSearchTerms.displayName(for: model.searchedCuisines))」的店，改為顯示附近的餐廳。"
             )
         } else if !model.relaxedDimensions.isEmpty {
             NoticeBox(

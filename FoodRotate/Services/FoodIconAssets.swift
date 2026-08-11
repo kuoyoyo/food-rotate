@@ -25,7 +25,7 @@ enum FoodIconAssets {
         let missing = FoodIcon.allCases.filter { UIImage(named: $0.assetName) == nil }
         guard !missing.isEmpty else { return nil }
 
-        var lines = ["⚠️ 圖示資產缺 \(missing.count)/\(FoodIcon.allCases.count) 個（轉盤暫時畫回 emoji）"]
+        var lines = ["⚠️ 圖示資產缺 \(missing.count)/\(FoodIcon.allCases.count) 個（轉盤上那幾格會沒有圖）"]
         lines += missing.map { "  • \($0.assetName)" }
         lines.append("  ← 設計師交 SVG，工程轉 PDF 進 Assets.xcassets（template 模式）")
         return lines.joined(separator: "\n")

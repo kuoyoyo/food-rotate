@@ -162,12 +162,21 @@ final class NearbySearchModel {
     /// 這個是「附近有哪些店」。搜尋、範圍上限、排序完全共用，不另外寫一套。
     ///
     /// - Parameters:
-    ///   - keyword: 想吃的類型，例如「日式」。空字串就查一般餐廳。
+    ///   - terms: 要拿去搜店名的字，見 `RestaurantSearchTerms`。多個字的結果會合併。
     ///   - onStage: 真實階段回報，給 Live Activity 用。定位跟搜尋各數秒，值得告訴使用者。
-    func searchRestaurants(keyword: String, onStage: (@MainActor (GenerationActivityAttributes.Stage) -> Void)? = nil) {
+    func searchRestaurants(
+        terms: [String],
+        onStage: (@MainActor (GenerationActivityAttributes.Stage) -> Void)? = nil
+    ) {
         searchTask?.cancel()
-        searchTask = Task { await self.runRestaurants(keyword: keyword, onStage: onStage) }
+        searchTask = Task { await self.runRestaurants(terms: terms, onStage: onStage) }
     }
+
+    /// 這一輪有沒有因為一家都找不到而退回一般餐廳。
+    ///
+    /// 存在的理由是產品規則第三條：**放寬要老實說明**。以前這個退回是靜默的 ——
+    /// 使用者選了「歐陸」拿到一般餐廳，畫面上沒有任何說明，那等於默默給了不符合的東西。
+    private(set) var didFallBackToGeneric = false
 
     /// 上一次拿到的位置。人在原地連按幾次「換一組」時不必重新定位——
     /// 定位往往是這條路徑裡最慢的一段，快取後第二次幾乎只剩地圖搜尋的時間。
@@ -175,11 +184,12 @@ final class NearbySearchModel {
     private static let locationCacheLifetime: TimeInterval = 120
 
     private func runRestaurants(
-        keyword: String,
+        terms: [String],
         onStage: (@MainActor (GenerationActivityAttributes.Stage) -> Void)?
     ) async {
         phase = .locating
         onStage?(.locating)
+        didFallBackToGeneric = false
         do {
             let location = try await resolveLocation()
             guard !Task.isCancelled else { return }
@@ -187,15 +197,20 @@ final class NearbySearchModel {
 
             phase = .searching
             onStage?(.searching)
-            // 菜系關鍵字直接餵給 MKLocalSearch。它對「日式」「韓式」這類詞的
-            // 理解比想像中好，會回日本料理店；查不到也只是回空，退回一般餐廳即可。
-            let query = keyword.isEmpty ? "餐廳" : keyword
-            var places = try await searchPlaces(dish: query, near: location)
+
+            // 每個搜尋詞各查一次再合併。一個詞代表不了一個菜系 ——
+            // 「東南亞」要靠「泰式」加「越南料理」才問得出東西（見 `RestaurantSearchTerms`）。
+            var places = try await searchPlaces(terms: terms, near: location)
 
             // 指定了菜系卻一家都沒有，退回查一般餐廳而不是直接失敗。
             // 使用者要的是「現在去哪吃」，附近沒有日式不代表沒得吃。
-            if places.isEmpty, !keyword.isEmpty {
-                places = (try? await searchPlaces(dish: "餐廳", near: location)) ?? []
+            //
+            // **但這件事要記下來讓畫面說出去。** 以前這裡是靜默的，違反「放寬要老實說明」。
+            if places.isEmpty, terms != [RestaurantSearchTerms.generic] {
+                places = (try? await searchPlaces(
+                    terms: [RestaurantSearchTerms.generic], near: location
+                )) ?? []
+                didFallBackToGeneric = !places.isEmpty
             }
             guard !Task.isCancelled else { return }
 
@@ -212,9 +227,32 @@ final class NearbySearchModel {
             phase = .failed(error.message)
             onStage?(.failed)
         } catch {
-            phase = .failed(Self.describeSearchFailure(error, dish: keyword.isEmpty ? "餐廳" : keyword))
+            phase = .failed(Self.describeSearchFailure(
+                error, dish: terms.first ?? RestaurantSearchTerms.generic
+            ))
             onStage?(.failed)
         }
+    }
+
+    /// 幾個搜尋詞各查一次，結果合併。
+    ///
+    /// 合併時用「店名 + 座標」去重，不是用 `id`：`NearbyPlace` 的 `id` 是每次建立時
+    /// 新生成的 UUID，同一家店在兩個搜尋詞裡會拿到兩個不同的 id，用它去重等於沒去重。
+    private func searchPlaces(terms: [String], near location: CLLocation) async throws -> [NearbyPlace] {
+        var merged: [NearbyPlace] = []
+        var seen = Set<String>()
+
+        for term in terms {
+            guard !Task.isCancelled else { break }
+            for place in try await searchPlaces(dish: term, near: location) {
+                let key = "\(place.name)@\(place.coordinate.latitude),\(place.coordinate.longitude)"
+                guard seen.insert(key).inserted else { continue }
+                merged.append(place)
+            }
+        }
+        // 合併之後順序會變成「第一個詞的全部、第二個詞的全部」，要重新照距離排，
+        // 否則轉盤上前幾格會全是同一個搜尋詞來的店。
+        return merged.sorted { $0.distance < $1.distance }
     }
 
     func stop() {

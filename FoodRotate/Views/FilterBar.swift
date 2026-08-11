@@ -14,6 +14,11 @@ struct FilterBar: View {
     /// 「去哪吃」只吃菜系——地圖搜尋收得下「日式」，但「無牛」「便宜」「宵夜」
     /// 沒辦法對店家生效。列出去卻不起作用比不列出來更糟。
     let activeDimensions: [FoodTag.Dimension]
+    /// 「去哪吃」模式：菜系在這裡**只是拿去搜店名的字**，不是篩選條件。
+    ///
+    /// 用語要跟著改。MapKit 沒有菜系欄位，我們做的一直是文字比對；
+    /// 繼續叫它「篩選」等於承諾了一件做不到的事（見 `RestaurantSearchTerms`）。
+    let searchesByKeyword: Bool
     /// 「去哪吃」才有的距離上限。nil 代表現在是「吃什麼」模式，不顯示。
     let radius: Binding<Double>?
     /// 標籤改變時呼叫。抽樣是瞬間的，所以點下去就重抽，不用等按鈕。
@@ -70,7 +75,7 @@ struct FilterBar: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "line.3.horizontal.decrease.circle\(filter.isEmpty ? "" : ".fill")")
-                    Text(filter.isEmpty ? "選條件" : filter.summary)
+                    Text(filter.isEmpty ? (searchesByKeyword ? "選類型" : "選條件") : filter.summary)
                         .lineLimit(1)
                     Image(systemName: "chevron.down")
                         .font(.caption2.weight(.semibold))
@@ -99,18 +104,33 @@ struct FilterBar: View {
         }
     }
 
-    /// 一個維度一列，橫向捲動。
+    /// 這一列該叫什麼。
     ///
-    /// 忌口那一列的標題多一句說明，因為它跟其他列的行為不一樣：
-    /// 其他列湊不滿格時會自動放寬，忌口不會。使用者要知道這個差別。
+    /// 「去哪吃」模式下菜系那一列不叫菜系 —— 它在那裡是搜尋詞，
+    /// 叫它菜系會讓人以為選了就保證是那個菜系的店，而地圖給不出這個保證。
+    private func title(for dimension: FoodTag.Dimension) -> String {
+        searchesByKeyword && dimension == .cuisine ? "搜尋關鍵字" : dimension.rawValue
+    }
+
+    /// 標題後面那句小字。兩列有，各自的理由不一樣。
+    private func note(for dimension: FoodTag.Dimension) -> String? {
+        if searchesByKeyword && dimension == .cuisine {
+            // 講清楚它的性質，不然使用者會把「附近沒有歐陸的店」讀成 App 壞了。
+            return "拿去搜店名，不是店家分類"
+        }
+        // 忌口跟其他列的行為不一樣：其他列湊不滿格時會自動放寬，忌口不會。
+        return dimension.isHardConstraint ? "一定不會出現" : nil
+    }
+
+    /// 一個維度一列，橫向捲動。
     private func dimensionRow(_ dimension: FoodTag.Dimension) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 6) {
-                Text(dimension.rawValue)
+                Text(title(for: dimension))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
-                if dimension.isHardConstraint {
-                    Text("一定不會出現")
+                if let note = note(for: dimension) {
+                    Text(note)
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
