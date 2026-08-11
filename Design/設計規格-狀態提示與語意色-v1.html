@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>食物轉盤 — 狀態提示與語意色 v1</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; }
+</style>
+</head>
+<body>
+<style>
+:root{--paper:#E7E6DF;--ink:#191A16;--ink-mid:#55574E;--ink-soft:#7E8077;--rule:#C7C6BD;--bad:#9B2F26;--ok:#3F6B45;
+--mono:ui-monospace,"SF Mono",Menlo,monospace;--sans:"PingFang TC","Noto Sans TC",system-ui,sans-serif;--gut:clamp(1.25rem,4vw,3rem)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#141512;--ink:#E5E4DB;--ink-mid:#9B9D92;--ink-soft:#75776D;--rule:#33352E;--bad:#E08A80;--ok:#8FBF8E}}
+:root[data-theme="dark"]{--paper:#141512;--ink:#E5E4DB;--ink-mid:#9B9D92;--ink-soft:#75776D;--rule:#33352E;--bad:#E08A80;--ok:#8FBF8E}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.72;-webkit-font-smoothing:antialiased}
+.wrap{max-width:74rem;margin:0 auto;padding:0 var(--gut) 5rem}
+.masthead{border-bottom:1.5px solid var(--ink);padding:clamp(2.5rem,7vw,4.5rem) 0 1.4rem;display:grid;gap:1.4rem}
+.stamp{font-family:var(--mono);font-size:.7rem;letter-spacing:.17em;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:.45rem 1.6rem}
+h1{font-size:clamp(2.1rem,6.5vw,3.8rem);line-height:1.06;letter-spacing:-.03em;font-weight:600;margin:0;text-wrap:balance}
+.dek{color:var(--ink-mid);max-width:46ch;margin:0}
+section{padding-top:clamp(3rem,7vw,5rem)}
+.row{display:grid;grid-template-columns:8.5rem minmax(0,1fr);gap:0 2.5rem;align-items:start}
+@media(max-width:860px){.row{grid-template-columns:minmax(0,1fr);gap:.75rem}}
+.label{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;color:var(--ink-soft);padding-top:.55rem;border-top:1px solid var(--ink);position:sticky;top:1.5rem}
+@media(max-width:860px){.label{position:static}}
+.col>*+*{margin-top:1.05rem}
+h2{font-size:clamp(1.5rem,3.4vw,2.2rem);line-height:1.25;letter-spacing:-.02em;font-weight:600;margin:0 0 .4rem;text-wrap:balance}
+p{margin:0;max-width:62ch;color:var(--ink-mid)}
+p strong{color:var(--ink);font-weight:600}
+code{font-family:var(--mono);font-size:.86em}
+.note{border-left:2px solid var(--ink);padding-left:1rem}
+.note.warn{border-left-color:var(--bad)}
+.tl{width:100%;font-size:.85rem;margin-top:1.5rem;display:block;overflow-x:auto}
+.tl table{width:100%;border-collapse:collapse;min-width:30rem}
+th,td{text-align:left;padding:.45rem .7rem;border-bottom:1px solid var(--rule)}
+th{font-family:var(--mono);font-size:.65rem;letter-spacing:.11em;color:var(--ink-soft);font-weight:400;white-space:nowrap}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pass{color:var(--ok);font-weight:600}.fail{color:var(--bad);font-weight:600}
+.sw{display:inline-block;width:1.3rem;height:1.3rem;border-radius:4px;border:1px solid rgba(128,128,128,.3);vertical-align:middle;margin-right:.45rem}
+/* 提示演示 */
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));gap:1.5rem;margin-top:1.75rem}
+.pane{border-radius:14px;padding:1.1rem;display:grid;gap:.65rem;align-content:start}
+.pane.l{background:#EFEAE0}.pane.d{background:#1A1714}
+.pane .cap{font-family:var(--mono);font-size:.63rem;letter-spacing:.12em;margin-bottom:.2rem}
+.pane.l .cap{color:#6C6761}.pane.d .cap{color:#AAA59C}
+/* 現況：五個一樣的卡片 */
+.old{border-radius:10px;padding:12px;display:flex;gap:10px;align-items:flex-start}
+.old.l{background:#F8F5EE}.old.d{background:#23201B}
+.old .ic{font-size:14px;line-height:1.2}
+.old .tt{font-size:13px;font-weight:600;line-height:1.35}
+.old .ms{font-size:11px;line-height:1.45;margin-top:2px}
+.old.l .tt,.old.l .ms{color:#241E18}.old.d .tt,.old.d .ms{color:#EFE9DE}
+.old.l .o{color:#C2701F}.old.l .b{color:#2F6CD6}
+.old.d .o{color:#E8A05C}.old.d .b{color:#6FA0F0}
+/* 新：高權重卡片 */
+.act{border-radius:10px;padding:12px;display:flex;gap:12px;align-items:flex-start}
+.act.l{background:#E9E1D4;border:1px solid #DAD7D0}
+.act.d{background:#2F261D}
+.act .tt{font-size:13px;font-weight:600}
+.act .ms{font-size:11px;line-height:1.45;margin-top:2px}
+.act.l .tt,.act.l .ic{color:#8F5418}.act.l .ms{color:#241E18}
+.act.d .tt,.act.d .ic{color:#EFAE6E}.act.d .ms{color:#EFE9DE}
+/* 新：低權重單行 */
+.inf{display:flex;gap:4px;align-items:baseline;font-size:11px;line-height:1.5;padding:2px 0}
+.inf.l{color:#6C6761}.inf.d{color:#AAA59C}
+.closing{margin-top:clamp(3rem,7vw,5rem);border-top:1.5px solid var(--ink);padding-top:1.4rem;display:grid;gap:.7rem}
+.sig{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;color:var(--ink-soft)}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+
+<div class="wrap">
+<header class="masthead">
+  <div class="stamp"><span>食物轉盤 FOOD ROTATE</span><span>狀態提示與語意色 v1</span>
+  <span>S3-B 第二批</span><span>2026-08-12</span><span>設計 → PM</span></div>
+  <h1>五種提示，<br>兩種重要程度。</h1>
+  <p class="dek">現況五種長得一模一樣，只有橘與藍的差別 ——
+  但<strong>橘與藍是兩個並列的顏色，不是兩個層級</strong>。
+  分權重的做法不是換顏色，是讓不重要的那三種不再是卡片、也不再有顏色。</p>
+</header>
+
+<section><div class="row"><div class="label">01 — 前後</div><div class="col">
+<h2>拿掉顏色本身就是降權重。</h2>
+<p>左邊是現況（五張一樣的卡片），右邊是改版。兩張圖裡的五種提示是同一組，
+差別只有權重的表達方式。</p>
+
+<div class="pair">
+  <div class="pane l">
+    <div class="cap">現況 · 淺色</div>
+    <div class="old l"><span class="ic o">⚑</span><div><div class="tt">找不到附近的店</div><div class="ms">定位失敗。改用「吃什麼」模式不需要網路或定位。</div></div></div>
+    <div class="old l"><span class="ic o">⚠</span><div><div class="tt">沒有符合的料理</div><div class="ms">忌口條件把所有選項都篩掉了。請把其中一個忌口取消再試。</div></div></div>
+    <div class="old l"><span class="ic b">⤢</span><div><div class="tt">改列一般餐廳</div><div class="ms">附近找不到「日式」的店，改為顯示附近的餐廳。</div></div></div>
+    <div class="old l"><span class="ic b">⤢</span><div><div class="tt">已放寬條件</div><div class="ms">完全符合的不夠 8 道，已放寬「菜系」。</div></div></div>
+    <div class="old l"><span class="ic b">◌</span><div><div class="tt">只湊得出 5 格</div><div class="ms">符合條件的料理不夠 8 道。可以少選幾個條件，或把格數調低。</div></div></div>
+  </div>
+  <div class="pane l">
+    <div class="cap">改版 · 淺色</div>
+    <div class="act l"><span class="ic">⚑</span><div><div class="tt">找不到附近的店</div><div class="ms">定位失敗。改用「吃什麼」模式不需要網路或定位。</div></div></div>
+    <div class="act l"><span class="ic">⚠</span><div><div class="tt">沒有符合的料理</div><div class="ms">忌口條件把所有選項都篩掉了。請把其中一個忌口取消再試。</div></div></div>
+    <div class="inf l"><span>⤢</span><span>附近沒有日式的店，改列一般餐廳</span></div>
+    <div class="inf l"><span>⤢</span><span>不夠 8 道，已放寬 菜系</span></div>
+    <div class="inf l"><span>◌</span><span>只湊得出 5 格，可以少選條件或調低格數</span></div>
+  </div>
+  <div class="pane d">
+    <div class="cap">現況 · 深色</div>
+    <div class="old d"><span class="ic o">⚑</span><div><div class="tt">找不到附近的店</div><div class="ms">定位失敗。改用「吃什麼」模式不需要網路或定位。</div></div></div>
+    <div class="old d"><span class="ic o">⚠</span><div><div class="tt">沒有符合的料理</div><div class="ms">忌口條件把所有選項都篩掉了。請把其中一個忌口取消再試。</div></div></div>
+    <div class="old d"><span class="ic b">⤢</span><div><div class="tt">改列一般餐廳</div><div class="ms">附近找不到「日式」的店，改為顯示附近的餐廳。</div></div></div>
+    <div class="old d"><span class="ic b">⤢</span><div><div class="tt">已放寬條件</div><div class="ms">完全符合的不夠 8 道，已放寬「菜系」。</div></div></div>
+    <div class="old d"><span class="ic b">◌</span><div><div class="tt">只湊得出 5 格</div><div class="ms">符合條件的料理不夠 8 道。可以少選幾個條件，或把格數調低。</div></div></div>
+  </div>
+  <div class="pane d">
+    <div class="cap">改版 · 深色</div>
+    <div class="act d"><span class="ic">⚑</span><div><div class="tt">找不到附近的店</div><div class="ms">定位失敗。改用「吃什麼」模式不需要網路或定位。</div></div></div>
+    <div class="act d"><span class="ic">⚠</span><div><div class="tt">沒有符合的料理</div><div class="ms">忌口條件把所有選項都篩掉了。請把其中一個忌口取消再試。</div></div></div>
+    <div class="inf d"><span>⤢</span><span>附近沒有日式的店，改列一般餐廳</span></div>
+    <div class="inf d"><span>⤢</span><span>不夠 8 道，已放寬 菜系</span></div>
+    <div class="inf d"><span>◌</span><span>只湊得出 5 格，可以少選條件或調低格數</span></div>
+  </div>
+</div>
+
+<div class="note" style="margin-top:1.75rem"><p>
+實際上一次只會出現其中一種（五者互斥）。並排是為了看得出<strong>層級差</strong> ——
+現況五張卡片一樣重，改版之後畫面上同時只有一個東西在喊。
+</p></div>
+
+<div class="note" style="margin-top:1.25rem"><p>
+<strong>「已放寬條件」仍然寫明放寬了哪個維度</strong>，八條產品規則之一成立。
+規則要求的是「說出來」，不是「大聲說」—— 降權重不等於藏起來。
+</p></div>
+</div></div></section>
+
+<section><div class="row"><div class="label">02 — 對比</div><div class="col">
+<h2>染色比例是被對比逼出來的。</h2>
+<p>初稿寫淺色染 10%，實算之後標題只有 <span class="fail">4.45</span>，不合格 ——
+染色把底壓暗，深橘字的對比就跟著掉。</p>
+
+<div class="tl"><table>
+<thead><tr><th>淺色染色</th><th>卡底</th><th>標題對比</th><th></th></tr></thead><tbody>
+<tr><td class="num">4%</td><td class="num">#EBE4D8</td><td class="num">4.82</td><td class="pass">✓</td></tr>
+<tr><td class="num"><strong>6% 採用</strong></td><td class="num">#E9E1D4</td><td class="num">4.69</td><td class="pass">✓ 留餘裕</td></tr>
+<tr><td class="num">8%</td><td class="num">#E7DED0</td><td class="num">4.57</td><td class="pass">✓ 極限</td></tr>
+<tr><td class="num">10%</td><td class="num">#E5DBCC</td><td class="num">4.45</td><td class="fail">✗ 初稿寫的</td></tr>
+</tbody></table></div>
+
+<div class="tl"><table>
+<thead><tr><th>定案值</th><th>前景</th><th>背景</th><th>對比</th></tr></thead><tbody>
+<tr><td>標題 淺</td><td class="num"><span class="sw" style="background:#8F5418"></span>#8F5418</td><td class="num">#E9E1D4</td><td class="num pass">4.69 ✓</td></tr>
+<tr><td>說明 淺</td><td class="num"><span class="sw" style="background:#241E18"></span>#241E18</td><td class="num">#E9E1D4</td><td class="num pass">12.71 ✓</td></tr>
+<tr><td>標題 深</td><td class="num"><span class="sw" style="background:#EFAE6E"></span>#EFAE6E</td><td class="num">#2F261D</td><td class="num pass">7.73 ✓</td></tr>
+<tr><td>說明 深</td><td class="num"><span class="sw" style="background:#EFE9DE"></span>#EFE9DE</td><td class="num">#2F261D</td><td class="num pass">12.28 ✓</td></tr>
+<tr><td>低權重 淺</td><td class="num"><span class="sw" style="background:#6C6761"></span>#6C6761</td><td class="num">#EFEAE0</td><td class="num pass">4.67 ✓</td></tr>
+<tr><td>低權重 深</td><td class="num"><span class="sw" style="background:#AAA59C"></span>#AAA59C</td><td class="num">#1A1714</td><td class="num pass">7.28 ✓</td></tr>
+</tbody></table></div>
+
+<div class="note warn" style="margin-top:1.75rem"><p>
+<strong>淺色的提示卡要加 1px 髮絲線邊框。</strong>
+6% 染色之後，卡底 <code>#E9E1D4</code> 與頁底 <code>#EFEAE0</code> 的對比只有
+<strong>1.08</strong> —— 光靠底色差看不出那是一張卡。深色是 1.20，不需要邊框。
+</p></div>
+</div></div></section>
+
+<div class="closing">
+<p class="sig">S3-B 第二批交付 · 待 PM 核可</p>
+<p>八項待裁示在規格第七節，其中兩項是版面調整 ——
+理由是「更好」不是「壞了」，不接受拿掉即可，不影響其餘六項。
+接著交第三批 S4（篩選器網格、候選清單、新增料理表單、卡片圖示）。</p>
+</div>
+</div>
+
+</body>
+</html>
