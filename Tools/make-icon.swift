@@ -38,10 +38,6 @@ struct MakeIcon {
     static func main() {
         let size = 1024.0
 
-        // 八格的顏色。淺底那套是 icon 的基準（icon 背景是暖色淺底），再套加深。
-        // 加深公式（飽和 ×1.12、明度 ×0.86）收在 DesignTokens，跟 App 共用同一份母盤。
-        let palette = DesignTokens.wheelOnLight.map { DesignTokens.deepenedForIcon($0.fill) }
-
         // MARK: 畫布
 
         let space = CGColorSpaceCreateDeviceRGB()
@@ -80,8 +76,18 @@ struct MakeIcon {
         // 圓心略低於畫布中心，上方留給指針。
         let center = CGPoint(x: size / 2, y: size * 0.480)
         let radius = size * 0.390
-        let segmentCount = 8
+
+        // 六格不是八格：icon 在桌面上只有 60pt，八格會糊成一團看不出是轉盤。
+        let segmentCount = 6
         let segmentAngle = 2 * Double.pi / Double(segmentCount)
+
+        // 走跟 App 內 6 格轉盤**完全一樣**的取色序列（母盤 0,2,3,4,6,7），
+        // 而不是自己取前六個 —— 那條序列是跳號取的，為的是讓相鄰色相差最大。
+        //
+        // 淺底那套是 icon 的基準（icon 背景是暖色淺底），再套加深：
+        // 加深公式（飽和 ×1.12、明度 ×0.86）收在 DesignTokens，跟 App 共用同一份母盤。
+        let palette = DesignTokens.wheelSlots(count: segmentCount, on: .light)
+            .map { DesignTokens.deepenedForIcon($0.fill) }
 
         // 轉盤底下的陰影，讓它從背景浮起來。
         ctx.saveGState()
@@ -139,7 +145,9 @@ struct MakeIcon {
 
         // MARK: 中心圓
 
-        let hubRadius = radius * 0.290
+        // 中心圓直徑佔轉盤的 40%（原本 29%）。格數少了之後中心留白顯得空，
+        // 把刀叉放大才撐得住 60pt 的縮圖 —— 那個尺寸下扇形只是配色，刀叉才是可辨識的部分。
+        let hubRadius = radius * 0.40
         ctx.saveGState()
         ctx.setShadow(
             offset: CGSize(width: 0, height: -size * 0.006),
