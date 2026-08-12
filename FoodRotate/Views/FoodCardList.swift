@@ -37,7 +37,19 @@ struct FoodCardList: View {
             }
 
             VStack(spacing: 0) {
-                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                // 身分**一定要用 `item.id`，不能用陣列索引**。
+                //
+                // 每一列自己持有狀態（展開優缺點、左滑的位置）。用索引當身分的話，
+                // 刪掉第 3 道之後 SwiftUI 認為「第 3 列還是第 3 列」，於是那個狀態
+                // 留在原位、換一道菜繼續套用 —— 使用者刪一道，畫面上會有另一道
+                // 莫名其妙被展開或被滑開。
+                //
+                // `id` 在同一份清單裡不會撞號：內建資料由 `FoodDataAudit.duplicateID`
+                // 盯著（測試對真實 `foods.json` 斷言零問題），自訂與店家都是 UUID，
+                // `FoodPicker` 抽樣時也是用 `id` 去重。
+                //
+                // 索引仍然要，但只拿來畫列與列之間的分隔線 —— 那是位置的事，不是身分的事。
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     if index > 0 {
                         // 分隔線縮排到圖示右緣，列與列才不會看起來像表格。
                         Divider()
@@ -78,43 +90,13 @@ struct FoodCardList: View {
     }
 }
 
-/// 左滑「這輪不要」的位移與門檻。
+/// 左滑露出來的動作有多寬。
 ///
-/// 抽成純函數是因為手勢本身測不到（沒有觸控就驅動不了），但**這些數字測得到**。
-/// 上一版這裡用 `.swipeActions`，那個修飾符只在 `List` 的 row 上有作用，
-/// 掛在 `VStack` 的子 view 上編得過、不當機、沒有警告，卻什麼都不會發生 ——
-/// 完全沒作用的程式碼比範圍錯的更糟，因為它看起來是做完的。
+/// 位移與門檻的計算已經拿掉了 —— 那是自己仲裁手勢方向的時代留下的，
+/// 現在方向交給巢狀 `ScrollView`（見 `FoodRow.body`），停的位置由
+/// `scrollTargetBehavior` 決定，沒有需要自己算的數字。
 enum RowSwipe {
-    /// 滑開後動作按鈕的寬度。
     static let actionWidth: CGFloat = 96
-
-    /// 一口氣滑過這麼多就直接執行，不必再點按鈕。
-    static let performThreshold: CGFloat = 200
-
-    /// 最多能拖到哪。超過就不再跟手，讓人知道到底了。
-    static let maxPull: CGFloat = 260
-
-    /// 拖曳中的位移。只往左（負值），右滑不會把列拉出容器。
-    static func offset(base: CGFloat, translation: CGFloat) -> CGFloat {
-        min(0, max(-maxPull, base + translation))
-    }
-
-    enum Resolution: Equatable {
-        /// 收回去。
-        case closed
-        /// 停在露出按鈕的位置。
-        case opened
-        /// 直接執行「這輪不要」。
-        case perform
-    }
-
-    /// 放手之後怎麼處理。
-    static func resolve(offset: CGFloat) -> Resolution {
-        let pulled = -offset
-        if pulled >= performThreshold { return .perform }
-        // 過了按鈕寬度的一半就停在開啟位置，否則彈回去。
-        return pulled >= actionWidth / 2 ? .opened : .closed
-    }
 }
 
 /// 清單裡的一列。
@@ -135,51 +117,37 @@ struct FoodRow: View {
     @State private var showNearby = false
     @State private var isRenaming = false
     @State private var draftName = ""
-    /// 左滑露出來的位移。0 是收合，負值是往左滑開。
-    @State private var swipeOffset: CGFloat = 0
     @State private var isConfirmingExclude = false
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            // 左滑之後從底下露出來的動作。
-            if canDelete {
-                deleteAction
-            }
+        // 左滑改用**巢狀的水平 `ScrollView`**，不再自己用 `DragGesture` 判斷方向。
+        //
+        // 上一版是 `.simultaneousGesture(DragGesture(minimumDistance: 12))` 加一個
+        // 「橫向才接手」的 guard。那個 guard 擋的是「改不改狀態」，**不是「要不要參與
+        // 手勢競技」** —— 手指移動 12pt 之後手勢就已經進場並把 `ScrollView` 的 pan 擋在外面，
+        // guard 只是讓它什麼都不做，於是慢慢垂直拖就變成既不滑開也不捲動。
+        // （快速 fling 時捲動先贏，所以那時候是好的 —— 這個 bug 只有慢速拖曳測得出來。）
+        //
+        // 換成水平 `ScrollView` 之後，方向仲裁交給 UIKit ——
+        // 它本來就會依主要方向決定要給內層還是外層，那是原生滑動列的做法。
+        // **這一塊我已經連錯三次手勢的掛法，不再自己仲裁。**
+        ScrollView(.horizontal) {
+            HStack(spacing: 0) {
+                rowContent
+                    // 佔滿一整個容器寬度，滑動距離才剛好是動作的寬度。
+                    .containerRelativeFrame(.horizontal)
 
-            VStack(alignment: .leading, spacing: 0) {
-                row
-
-                if isExpanded {
-                    details
-                        .padding(.horizontal, Theme.space12)
-                        .padding(.bottom, Theme.space12)
+                if canDelete {
+                    deleteAction
                 }
             }
-            .background(alignment: .leading) {
-                // 中選的那道左側一條主色。比整列換底色安靜，但掃一眼就找得到。
-                if isWinner {
-                    Theme.sauce(for: colorScheme)
-                        .frame(width: 3)
-                }
-            }
-            // 列本身要有不透明底，否則會透出後面的動作色塊。
-            //
-            // **形狀要明講 `Rectangle`。** 不給形狀的話 iOS 26 會讓它跟容器的圓角做同心處理，
-            // 每一列的底都變成圓角矩形，列與列之間的凹處就露出後面的橘色 ——
-            // 靜止狀態下整份清單右緣會排一整排小尖角。要圓角的是整個容器，不是每一列。
-            .background(Theme.card(for: colorScheme), in: Rectangle())
-            .offset(x: swipeOffset)
-            .simultaneousGesture(swipeToDelete)
+            .scrollTargetLayout()
         }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            // 已經滑開的時候，點一下是收回去，不是展開。
-            guard swipeOffset == 0 else {
-                withAnimation(.snappy(duration: 0.22)) { swipeOffset = 0 }
-                return
-            }
-            withAnimation(.snappy(duration: 0.22)) { isExpanded.toggle() }
-        }
+        // 對齊子元素的邊緣：只會停在「收合」與「完全露出動作」兩個位置。
+        .scrollTargetBehavior(.viewAligned)
+        .scrollIndicators(.hidden)
+        // 剩兩道就不給拿掉（轉盤最少要留 2 格），這時候整列不該滑得動。
+        .scrollDisabled(!canDelete)
         .sheet(isPresented: $showNearby) {
             NearbyRestaurantsView(dish: item.name)
         }
@@ -192,7 +160,7 @@ struct FoodRow: View {
         }
         // 「以後都不要」是永久的，要問第二次。
         //
-        // 它跟「這輪不要」現在同在一個 Menu、都是點一下，只有紅字之差 ——
+        // 它跟「這輪不要」同在一個 Menu、都是點一下，只有紅字之差 ——
         // 但一個換一組就回來，一個是從此不再出現。**`role: .destructive` 只改顏色，
         // 不改後果。** 手滑點錯下面那個，使用者未必知道去哪裡救。
         //
@@ -209,6 +177,36 @@ struct FoodRow: View {
             // 說明要講出**救回來的路徑** —— 永久性動作要讓人知道它不是不可逆的，
             // 這跟「放寬要老實說明」是同一條原則：後果要講出來。
             Text("這道菜不會再出現在轉盤上。可以在設定的「我的清單」裡改回來。")
+        }
+    }
+
+    /// 列本體（含展開後的優缺點）。它是水平 ScrollView 的第一個子元素。
+    private var rowContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            row
+
+            if isExpanded {
+                details
+                    .padding(.horizontal, Theme.space12)
+                    .padding(.bottom, Theme.space12)
+            }
+        }
+        .background(alignment: .leading) {
+            // 中選的那道左側一條主色。比整列換底色安靜，但掃一眼就找得到。
+            if isWinner {
+                Theme.sauce(for: colorScheme)
+                    .frame(width: 3)
+            }
+        }
+        // 列本身要有不透明底，否則會透出後面的動作色塊。
+        //
+        // **形狀要明講 `Rectangle`。** 不給形狀的話 iOS 26 會讓它跟容器的圓角做同心處理，
+        // 每一列的底都變成圓角矩形，列與列之間的凹處就露出後面的橘色 ——
+        // 靜止狀態下整份清單右緣會排一整排小尖角。要圓角的是整個容器，不是每一列。
+        .background(Theme.card(for: colorScheme), in: Rectangle())
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.snappy(duration: 0.22)) { isExpanded.toggle() }
         }
     }
 
@@ -289,44 +287,10 @@ struct FoodRow: View {
                     .foregroundStyle(colorScheme == .dark ? Theme.Dark.onSauce : Theme.Light.onSauce)
             }
             .contentShape(Rectangle())
-            .onTapGesture {
-                withAnimation(.snappy(duration: 0.22)) { swipeOffset = 0 }
-                onDelete()
-            }
+            .onTapGesture(perform: onDelete)
             .accessibilityElement()
             .accessibilityLabel("這輪不要")
             .accessibilityAddTraits(.isButton)
-    }
-
-    /// 自己做的左滑。
-    ///
-    /// 用 `simultaneousGesture` 並先判斷方向：這一列在一個垂直捲動的 `ScrollView` 裡，
-    /// 不判方向的話往下滑會被當成滑動列（跟 S3 的 hero 拖曳是同一類問題）。
-    private var swipeToDelete: some Gesture {
-        DragGesture(minimumDistance: 12)
-            .onChanged { value in
-                guard canDelete else { return }
-                // 橫向意圖才接手，否則讓捲動去處理。
-                guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                swipeOffset = RowSwipe.offset(base: swipeBase, translation: value.translation.width)
-            }
-            .onEnded { _ in
-                guard canDelete else { return }
-                switch RowSwipe.resolve(offset: swipeOffset) {
-                case .perform:
-                    withAnimation(.snappy(duration: 0.22)) { swipeOffset = 0 }
-                    onDelete()
-                case .opened:
-                    withAnimation(.snappy(duration: 0.22)) { swipeOffset = -RowSwipe.actionWidth }
-                case .closed:
-                    withAnimation(.snappy(duration: 0.22)) { swipeOffset = 0 }
-                }
-            }
-    }
-
-    /// 這次拖曳的起點。已經滑開的話從開啟位置繼續。
-    private var swipeBase: CGFloat {
-        swipeOffset <= -RowSwipe.actionWidth ? -RowSwipe.actionWidth : 0
     }
 
     /// 點開之後在同一列下方長出優缺點，不做卡片轉場 —— 收合時整份清單維持高密度。
