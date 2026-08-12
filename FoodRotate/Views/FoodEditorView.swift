@@ -181,65 +181,87 @@ struct MyListView: View {
     @State private var isAdding = false
     @State private var isConfirmingReset = false
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         List {
             Section {
-                Button("新增料理", systemImage: "plus.circle.fill") { isAdding = true }
+                Button {
+                    isAdding = true
+                } label: {
+                    // 實心主色 + `onSauce`：這是這一頁唯一的主要動作。
+                    // 深色的 `onSauce` 是**深墨不是白**，白字疊在提亮後的主色上只有 3.50。
+                    Label("新增料理", systemImage: "plus.circle.fill")
+                        .font(Theme.headline)
+                        .foregroundStyle(
+                            colorScheme == .dark ? Theme.Dark.onSauce : Theme.Light.onSauce
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Theme.space12)
+                        .background(
+                            Theme.sauce(for: colorScheme),
+                            in: Capsule()
+                        )
+                }
+                .buttonStyle(.plain)
+                .listRowBackground(Theme.card(for: colorScheme))
 
                 if store.customItems.isEmpty {
-                    Text("還沒有自己加的料理。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    emptyNote("還沒有自己加的料理。")
                 } else {
                     ForEach(store.customItems) { item in
                         Button {
                             editing = item
                         } label: {
-                            row(item, detail: item.category)
+                            row(item)
                         }
                         .buttonStyle(.plain)
+                        .dishListRowStyle(for: colorScheme)
                     }
                     .onDelete { offsets in
                         for index in offsets { store.exclude(store.customItems[index]) }
                     }
                 }
             } header: {
-                Text("我加的料理")
+                sectionHeader("我加的料理")
             } footer: {
-                Text("自己加的料理會跟內建的五十道一起參加抽樣。")
+                sectionFooter("自己加的料理會跟內建的五十道一起參加抽樣。")
             }
 
             Section {
                 if store.excludedBuiltIns.isEmpty {
-                    Text("沒有排除任何料理。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    emptyNote("沒有排除任何料理。")
                 } else {
                     ForEach(store.excludedBuiltIns) { item in
-                        HStack {
-                            row(item, detail: item.category)
-                            Spacer(minLength: 8)
+                        row(item) {
+                            // 「還原」是把東西**加回來**，不是破壞性動作，所以走主色。
                             Button("還原") { store.restore(id: item.id) }
-                                .buttonStyle(.bordered)
-                                .buttonBorderShape(.capsule)
-                                .controlSize(.small)
+                                .font(Theme.footnote)
+                                .foregroundStyle(Theme.sauce(for: colorScheme))
+                                .buttonStyle(.plain)
                         }
+                        .dishListRowStyle(for: colorScheme)
                     }
                 }
             } header: {
-                Text("以後都不要的")
+                sectionHeader("以後都不要的")
             }
 
             if store.customizationCount > 0 {
                 Section {
-                    Button("還原成預設", role: .destructive) { isConfirmingReset = true }
+                    Button("還原成預設") { isConfirmingReset = true }
+                        .font(Theme.body)
+                        // `negative` 而不是系統紅：這個 App 只有兩個語意色。
+                        .foregroundStyle(Theme.negative(for: colorScheme))
+                        .listRowBackground(Theme.card(for: colorScheme))
                 } footer: {
-                    Text("會一併刪掉你自己加的料理，這個動作沒辦法復原。")
+                    sectionFooter("會一併刪掉你自己加的料理，這個動作沒辦法復原。")
                 }
             }
         }
         .navigationTitle("我的清單")
         .navigationBarTitleDisplayMode(.inline)
+        .dishListBackground(for: colorScheme)
         .sheet(isPresented: $isAdding) { FoodEditorView(editing: nil) }
         .sheet(item: $editing) { FoodEditorView(editing: $0) }
         .confirmationDialog("還原成預設？", isPresented: $isConfirmingReset, titleVisibility: .visible) {
@@ -248,17 +270,41 @@ struct MyListView: View {
         }
     }
 
-    private func row(_ item: FoodItem, detail: String) -> some View {
-        HStack(spacing: 12) {
-            Text(item.displayEmoji)
-                .font(.title3)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.name)
-                    .font(.subheadline)
-                Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
+    /// 跟歷史頁共用的列。這一頁的 emoji **百分之百是使用者挑的**，更沒有理由換掉。
+    private func row<Trailing: View>(
+        _ item: FoodItem,
+        @ViewBuilder trailing: () -> Trailing = { EmptyView() }
+    ) -> some View {
+        DishListRow(
+            emoji: item.displayEmoji,
+            title: item.name,
+            subtitle: item.category,
+            badgeSource: item,
+            // 這一頁的角標是主要的類型資訊來源（沒有線稿圖示），所以菜系與吃法都給。
+            showsFormBadge: true,
+            trailing: trailing
+        )
+    }
+
+    private func sectionHeader(_ text: String) -> some View {
+        Text(text)
+            .font(Theme.caption)
+            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+    }
+
+    private func sectionFooter(_ text: String) -> some View {
+        Text(text)
+            .font(Theme.footnote)
+            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+    }
+
+    private func emptyNote(_ text: String) -> some View {
+        Text(text)
+            .font(Theme.footnote)
+            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+            .padding(.horizontal, Theme.space12)
+            .padding(.vertical, Theme.space12)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Theme.card(for: colorScheme))
     }
 }

@@ -25,7 +25,7 @@ icons/
 ```
 
 規格：24×24、線寬 1.6、圓端圓角、`stroke="currentColor"`（單色，不自帶顏色）。
-**匯入時務必設 Template Rendering**，asset 名以工程的命名為準（見 `PM裁示-S2交件-回覆.md` 第一節對照表，
+**匯入時務必設 Template Rendering**，asset 名以工程的命名為準（見 `PM/PM裁示-S2交件-回覆.md` 第一節對照表，
 `form-light` 與 `form-unknown` 兩者的 slug 與檔名不同）。
 
 ### 文件
@@ -55,7 +55,7 @@ icons/
 | 文件 | 內容 |
 |---|---|
 | `專案現況彙整-給設計師.md` | PM 的設計交接底稿。現況、資訊架構、八條不可改的產品規則、痛點排序 |
-| `PM裁示-S2交件-回覆.md` | S2 交件的裁示，含圖示 asset 命名對照表 |
+| `PM/PM裁示-S2交件-回覆.md` | S2 交件的裁示，含圖示 asset 命名對照表 |
 | `大改紀錄-拿掉語言模型.md` | 架構大改的決策理由 |
 | `FoodRotate/Core/foods.json` | 50 道料理的完整資料，所有色票與圖示的驗證都以它為準 |
 

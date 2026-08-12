@@ -9,6 +9,8 @@ struct HistoryView: View {
     /// 還原後要跳回轉盤分頁，所以把選擇往上拋。
     let onRestore: (SpinRecord) -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         Group {
             if records.isEmpty {
@@ -35,11 +37,24 @@ struct HistoryView: View {
     }
 
     private var empty: some View {
-        ContentUnavailableView(
-            "還沒有紀錄",
-            systemImage: "clock.arrow.circlepath",
-            description: Text("轉過的每一次都會存在這裡，可以直接還原同一組清單重轉。")
-        )
+        // 用 builder 形式而不是 `ContentUnavailableView("…", systemImage:)`：
+        // 後者的標題吃系統 primary、說明吃 secondary，從外面套 `foregroundStyle`
+        // 蓋不掉。三個部件的顏色規格各自指定（圖示與說明次要、標題主文字），
+        // 只有這個形式套得進去。
+        ContentUnavailableView {
+            Label {
+                Text("還沒有紀錄")
+                    .foregroundStyle(Theme.text(for: colorScheme))
+            } icon: {
+                Image(systemName: "clock.arrow.circlepath")
+                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+            }
+        } description: {
+            Text("轉過的每一次都會存在這裡，可以直接還原同一組清單重轉。")
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.pageBackground(for: colorScheme))
     }
 
     private var list: some View {
@@ -52,39 +67,37 @@ struct HistoryView: View {
                     row(record)
                 }
                 .buttonStyle(.plain)
+                .dishListRowStyle(for: colorScheme)
             }
             .onDelete(perform: delete)
         }
         .listStyle(.insetGrouped)
+        .dishListBackground(for: colorScheme)
     }
 
     private func row(_ record: SpinRecord) -> some View {
-        HStack(spacing: 12) {
-            Text(record.winner?.displayEmoji ?? "🍽️")
-                .font(.system(size: 28))
-                .frame(width: 42, height: 42)
-                .background(Color(.secondarySystemGroupedBackground), in: Circle())
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(record.winnerName)
-                    .font(.subheadline.weight(.semibold))
-                Text(record.prompt.isEmpty ? "沒有指定條件" : record.prompt)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+        DishListRow(
+            emoji: record.winner?.displayEmoji ?? "🍽️",
+            title: record.winnerName,
+            subtitle: record.prompt.isEmpty ? "沒有指定條件" : record.prompt,
+            // 舊版紀錄的 JSON 少了欄位、解不開（見 `SpinRecord.items`），
+            // 那時候 `winner` 是 nil，就沒有角標可顯示。
+            badgeSource: record.winner,
+            // 歷史頁只顯示菜系：右邊已經有時間與還原符號，再加吃法會擠掉菜名。
+            showsFormBadge: false
+        ) {
+            HStack(spacing: Theme.space8) {
                 Text(record.date, format: .dateTime.month().day().hour().minute())
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .font(Theme.caption)
+                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+
+                // 保留這個符號：它是「點這一列會還原」的唯一提示。
+                // 規格的列表沒有列到它，但拿掉是減少一個功能的提示，不是套色。
+                Image(systemName: "arrow.counterclockwise")
+                    .font(Theme.caption)
+                    .foregroundStyle(Theme.sauce(for: colorScheme))
             }
-
-            Spacer(minLength: 0)
-
-            Image(systemName: "arrow.counterclockwise")
-                .font(.caption)
-                .foregroundStyle(Color.accentColor)
         }
-        .padding(.vertical, 2)
-        .contentShape(Rectangle())
     }
 
     private func delete(at offsets: IndexSet) {

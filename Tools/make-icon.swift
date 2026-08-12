@@ -26,9 +26,11 @@ struct MakeIcon {
 
     // MARK: - 配色
 
-    /// 一張 icon 需要的顏色。彩色版與去色版**共用同一段幾何**，只有這裡不同。
+    /// 一張 icon 需要的顏色。三個版本**共用同一段幾何**，只有這裡不同。
     struct Palette {
-        let background: DesignTokens.RGB
+        /// `nil` 代表背景透明。這時候分隔線與指針缺口改用 `.clear` 混合模式**挖穿**，
+        /// 而不是拿背景色蓋 —— 這樣同一張圖在淺色與深色頁面上都是頁底色從縫裡透出來。
+        let background: DesignTokens.RGB?
         /// 六格的顏色，依取色序列排好。
         let slices: [DesignTokens.RGB]
         let pointer: DesignTokens.RGB
@@ -62,6 +64,19 @@ struct MakeIcon {
         )
     }
 
+    /// 首次啟動說明頁的轉盤標記。
+    ///
+    /// 跟彩色版是**同一組色、同一段幾何**，差別只有背景透明（見 `Palette.background`）。
+    /// 使用者剛剛在桌面上點了那顆 icon，第一個畫面出現同一個圖形 ——「我點的就是這個」。
+    /// 這是我們自己的內容，換掉 🎡 沒有「替使用者改掉他的輸入」的問題。
+    static var mark: Palette {
+        Palette(
+            background: nil,
+            slices: colorful.slices,
+            pointer: colorful.pointer
+        )
+    }
+
     // MARK: - 幾何（單位為邊長 S 的比例）
 
     static let segmentCount = 6
@@ -81,15 +96,14 @@ struct MakeIcon {
     // MARK: - 進入點
 
     static func main() {
-        let arguments = CommandLine.arguments.dropFirst()
+        let arguments = Array(CommandLine.arguments.dropFirst())
         guard let colorPath = arguments.first else {
-            fatalError("用法：make-icon <彩色輸出.png> [<去色輸出.png>]")
+            fatalError("用法：make-icon <彩色輸出.png> [<去色輸出.png> [<標記輸出.png>]]")
         }
 
         write(palette: colorful, to: colorPath)
-        if let tintedPath = arguments.dropFirst().first {
-            write(palette: tinted, to: tintedPath)
-        }
+        if arguments.count > 1 { write(palette: tinted, to: arguments[1]) }
+        if arguments.count > 2 { write(palette: mark, to: arguments[2]) }
     }
 
     static func write(palette: Palette, to path: String) {
@@ -126,9 +140,11 @@ struct MakeIcon {
     /// 沒有中心圓、沒有刀叉、沒有外圈描邊 —— 那三個在 40pt 就糊掉、29pt 完全消失。
     /// 留下來的是六格色盤與指針，那是縮到 20pt 還活著的結構。
     static func draw(palette: Palette, in ctx: CGContext, size: CGFloat) {
-        // 背景滿版。
-        ctx.setFillColor(palette.background.cgColor)
-        ctx.fill(CGRect(x: 0, y: 0, width: size, height: size))
+        // 背景滿版。標記版沒有背景，留透明。
+        if let background = palette.background {
+            ctx.setFillColor(background.cgColor)
+            ctx.fill(CGRect(x: 0, y: 0, width: size, height: size))
+        }
 
         let center = CGPoint(x: size / 2, y: size / 2)
         let radius = size * wheelDiameter / 2
@@ -154,7 +170,10 @@ struct MakeIcon {
 
         // 分隔線。用背景色畫在扇形上，看起來就是地色從縫裡透出來。
         // 去色版沒有它就只是一個純色圓，這是它必須存在的理由。
-        ctx.setStrokeColor(palette.background.cgColor)
+        //
+        // 標記版沒有背景色可用，改成把縫**挖穿**：效果一樣是地色透出來，
+        // 但地色是頁面給的，所以同一張圖淺色深色都對。
+        applyGap(palette: palette, in: ctx)
         ctx.setLineWidth(size * dividerWidth)
         for index in 0..<segmentCount {
             let angle = Double.pi / 2 - Double(index) * segmentAngle
@@ -167,7 +186,20 @@ struct MakeIcon {
             ctx.strokePath()
         }
 
+        // 挖穿模式會一路留在 context 上，畫指針前要收回來。
+        ctx.setBlendMode(.normal)
         drawPointer(palette: palette, in: ctx, size: size, center: center, radius: radius)
+    }
+
+    /// 把「要露出地色的地方」設定好畫筆：有背景色就拿背景色蓋，沒有就切換成挖穿。
+    static func applyGap(palette: Palette, in ctx: CGContext) {
+        if let background = palette.background {
+            ctx.setBlendMode(.normal)
+            ctx.setStrokeColor(background.cgColor)
+            ctx.setFillColor(background.cgColor)
+        } else {
+            ctx.setBlendMode(.clear)
+        }
     }
 
     /// 指針。**兩層**：先用背景色畫一個三角在盤上切出缺口，再畫一個內縮的主色三角。
@@ -198,10 +230,11 @@ struct MakeIcon {
             ctx.fillPath()
         }
 
-        ctx.setFillColor(palette.background.cgColor)
+        applyGap(palette: palette, in: ctx)
         triangle(halfWidth: halfWidth, baseY: baseY, apexY: apexY)
 
         let inset = size * pointerInset
+        ctx.setBlendMode(.normal)
         ctx.setFillColor(palette.pointer.cgColor)
         triangle(halfWidth: halfWidth - inset, baseY: baseY - inset, apexY: apexY + inset)
     }
