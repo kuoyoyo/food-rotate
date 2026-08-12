@@ -1,21 +1,20 @@
 //
 //  make-icon.swift — 產生 App Icon
 //
-//  用程式畫而不是拉圖，是為了讓 icon 的八格配色跟 App 內的轉盤同源：
+//  用程式畫而不是把 SVG 丟進 asset catalog，是為了讓 icon 的配色跟 App 內的轉盤同源：
 //  兩邊都讀 `FoodRotate/DesignTokens.swift`，改了 token 重跑這支就會跟著動。
-//  但**同源不等於同值** —— icon 版會再套一道加深（`DesignTokens.deepenedForIcon`），
+//  色值一旦烙進 SVG，日後改色盤 icon 就會再次跟 App 分岔 —— 那正是 S1 花力氣解掉的問題。
+//  （`Design/icons/app-icon.svg` 是設計稿與視覺驗證用的參考檔，不是生產來源。）
+//
+//  同源不等於同值：icon 版會再套一道加深（`DesignTokens.deepenedForIcon`），
 //  因為 icon 在桌面上只有 60pt，App 裡那組色會糊成一團灰。
 //
-//  這個檔案放在專案根目錄的 Tools/ 底下，不在 FoodRotate/ 同步資料夾內，
-//  所以不會被當成 App 的原始碼編進去。
+//  幾何全部以邊長 S 的比例表示（`Design/設計規格-AppIcon-v1.md` 第二節），
+//  任何尺寸等比成立。
 //
 //  用法（要跟 token 一起編，所以是 swiftc 不是 swift）：
 //      swiftc Tools/make-icon.swift FoodRotate/DesignTokens.swift -o /tmp/make-icon \
-//          && /tmp/make-icon FoodRotate/Assets.xcassets/AppIcon.appiconset/AppIcon.png
-//
-//  以前是 `swift Tools/make-icon.swift <輸出路徑>` 單檔直譯。改成兩個檔之後直譯器不能用了
-//  （它只看得到第一個檔），而頂層程式碼在多檔編譯下要放 main.swift，所以這裡改用 `@main`
-//  把進入點包起來，檔名才留得住。
+//          && /tmp/make-icon <彩色輸出.png> [<去色輸出.png>]
 //
 
 import AppKit
@@ -25,21 +24,76 @@ import Foundation
 @main
 struct MakeIcon {
 
-    // MARK: - 配色（與 App 同一份 token，另外加深）
+    // MARK: - 配色
 
-    /// 主色・醬。icon 的指針、中心圈與刀叉都用它。
+    /// 一張 icon 需要的顏色。彩色版與去色版**共用同一段幾何**，只有這裡不同。
+    struct Palette {
+        let background: DesignTokens.RGB
+        /// 六格的顏色，依取色序列排好。
+        let slices: [DesignTokens.RGB]
+        let pointer: DesignTokens.RGB
+    }
+
+    /// 彩色版。
     ///
-    /// **不套加深**：那道轉換是為了讓粉彩的盤色在 60pt 下不糊成灰，而醬本來就是深色
-    /// （規格只把公式定義在 `wheelOnLight` 母盤上）。醬再加深會壓成一團看不出色相的暗紅。
-    static let accent = DesignTokens.sauce.cgColor
+    /// 六格走跟 App 內 6 格轉盤**完全一樣**的取色序列（母盤 0,2,3,4,6,7）再套加深 ——
+    /// 使用者把 App 開起來會看到同一個東西。
+    static var colorful: Palette {
+        Palette(
+            background: DesignTokens.Dark.pageBackground,
+            slices: DesignTokens.wheelSlots(count: segmentCount, on: .light)
+                .map { DesignTokens.deepenedForIcon($0.fill) },
+            // 指針用淺色模式的主色，不是深色的提亮版。它疊在深底上，是整張圖唯一的品牌色點。
+            pointer: DesignTokens.sauce
+        )
+    }
+
+    /// 去色版。
+    ///
+    /// **一定要自己做，不能讓系統自動去色。** 實測模擬：沒有分隔線的話六格會變成
+    /// 一個幾乎均勻的灰盤，識別完全消失。這是「顏色是裝飾、結構是分隔線」的極端案例 ——
+    /// 去色之後只剩結構還在。
+    static var tinted: Palette {
+        let ink = DesignTokens.RGB(0xE7E2D8)
+        return Palette(
+            background: DesignTokens.Dark.pageBackground,
+            slices: Array(repeating: ink, count: segmentCount),
+            pointer: ink
+        )
+    }
+
+    // MARK: - 幾何（單位為邊長 S 的比例）
+
+    static let segmentCount = 6
+    /// 轉盤直徑。
+    static let wheelDiameter = 0.86
+    /// 分隔線寬。**色是背景色** —— 分隔線不是畫上去的線，是地色透出來的縫。
+    static let dividerWidth = 0.016
+    /// 指針半寬，以轉盤半徑 R 為單位。
+    static let pointerHalfWidth = 0.20
+    /// 指針高 = 半寬的 1.5 倍。
+    static let pointerHeightRatio = 1.5
+    /// 指針底邊離圓周多遠（R 的比例）。
+    static let pointerGap = 0.10
+    /// 內層指針相對外層內縮多少。
+    static let pointerInset = 0.012
 
     // MARK: - 進入點
 
     static func main() {
+        let arguments = CommandLine.arguments.dropFirst()
+        guard let colorPath = arguments.first else {
+            fatalError("用法：make-icon <彩色輸出.png> [<去色輸出.png>]")
+        }
+
+        write(palette: colorful, to: colorPath)
+        if let tintedPath = arguments.dropFirst().first {
+            write(palette: tinted, to: tintedPath)
+        }
+    }
+
+    static func write(palette: Palette, to path: String) {
         let size = 1024.0
-
-        // MARK: 畫布
-
         let space = CGColorSpaceCreateDeviceRGB()
         guard let ctx = CGContext(
             data: nil,
@@ -51,59 +105,36 @@ struct MakeIcon {
             fatalError("建立繪圖環境失敗")
         }
 
-        // MARK: 背景
+        draw(palette: palette, in: ctx, size: size)
 
-        // 暖色系漸層。彩色轉盤本身已經很吵，背景保持低彩度才不會糊成一團。
-        // 這兩個值目前沒有對應的 token（是 icon 專用的），S1a 的 icon 章節可能會重新定義。
-        if let gradient = CGGradient(
-            colorsSpace: space,
-            colors: [
-                CGColor(red: 1.00, green: 0.91, blue: 0.80, alpha: 1),
-                CGColor(red: 0.99, green: 0.72, blue: 0.51, alpha: 1),
-            ] as CFArray,
-            locations: [0, 1]
-        ) {
-            ctx.drawLinearGradient(
-                gradient,
-                start: CGPoint(x: 0, y: size),
-                end: CGPoint(x: size, y: 0),
-                options: []
-            )
+        guard let image = ctx.makeImage() else { fatalError("產生點陣圖失敗") }
+        let url = URL(fileURLWithPath: path)
+        guard let destination = CGImageDestinationCreateWithURL(
+            url as CFURL, "public.png" as CFString, 1, nil
+        ) else {
+            fatalError("無法寫入 \(path)")
         }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else { fatalError("寫入 PNG 失敗") }
+        print("已產生 \(path)（\(Int(size))×\(Int(size))）")
+    }
 
-        // MARK: 轉盤
+    // MARK: - 繪製
 
-        // 圓心略低於畫布中心，上方留給指針。
-        let center = CGPoint(x: size / 2, y: size * 0.480)
-        let radius = size * 0.390
+    /// 彩色版與去色版跑的是**同一段程式**，差別只有傳進來的 `palette`。
+    ///
+    /// 沒有中心圓、沒有刀叉、沒有外圈描邊 —— 那三個在 40pt 就糊掉、29pt 完全消失。
+    /// 留下來的是六格色盤與指針，那是縮到 20pt 還活著的結構。
+    static func draw(palette: Palette, in ctx: CGContext, size: CGFloat) {
+        // 背景滿版。
+        ctx.setFillColor(palette.background.cgColor)
+        ctx.fill(CGRect(x: 0, y: 0, width: size, height: size))
 
-        // 六格不是八格：icon 在桌面上只有 60pt，八格會糊成一團看不出是轉盤。
-        let segmentCount = 6
+        let center = CGPoint(x: size / 2, y: size / 2)
+        let radius = size * wheelDiameter / 2
         let segmentAngle = 2 * Double.pi / Double(segmentCount)
 
-        // 走跟 App 內 6 格轉盤**完全一樣**的取色序列（母盤 0,2,3,4,6,7），
-        // 而不是自己取前六個 —— 那條序列是跳號取的，為的是讓相鄰色相差最大。
-        //
-        // 淺底那套是 icon 的基準（icon 背景是暖色淺底），再套加深：
-        // 加深公式（飽和 ×1.12、明度 ×0.86）收在 DesignTokens，跟 App 共用同一份母盤。
-        let palette = DesignTokens.wheelSlots(count: segmentCount, on: .light)
-            .map { DesignTokens.deepenedForIcon($0.fill) }
-
-        // 轉盤底下的陰影，讓它從背景浮起來。
-        ctx.saveGState()
-        ctx.setShadow(
-            offset: CGSize(width: 0, height: -size * 0.018),
-            blur: size * 0.05,
-            color: CGColor(red: 0.55, green: 0.25, blue: 0.08, alpha: 0.30)
-        )
-        ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
-        ctx.fillEllipse(in: CGRect(
-            x: center.x - radius, y: center.y - radius,
-            width: radius * 2, height: radius * 2
-        ))
-        ctx.restoreGState()
-
-        // 八個扇形。從正上方開始順時針排，跟 App 內的轉盤方向一致。
+        // 六個扇形。從正上方開始順時針排，跟 App 內的轉盤方向一致。
         for index in 0..<segmentCount {
             // CoreGraphics 的 0 度在右方且逆時針為正，這裡轉成「正上方起、順時針」。
             let start = Double.pi / 2 - Double(index) * segmentAngle
@@ -117,13 +148,14 @@ struct MakeIcon {
                 clockwise: true
             )
             ctx.closePath()
-            ctx.setFillColor(palette[index].cgColor)
+            ctx.setFillColor(palette.slices[index].cgColor)
             ctx.fillPath()
         }
 
-        // 扇形之間的白色分隔線。
-        ctx.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.9))
-        ctx.setLineWidth(size * 0.011)
+        // 分隔線。用背景色畫在扇形上，看起來就是地色從縫裡透出來。
+        // 去色版沒有它就只是一個純色圓，這是它必須存在的理由。
+        ctx.setStrokeColor(palette.background.cgColor)
+        ctx.setLineWidth(size * dividerWidth)
         for index in 0..<segmentCount {
             let angle = Double.pi / 2 - Double(index) * segmentAngle
             ctx.beginPath()
@@ -135,116 +167,43 @@ struct MakeIcon {
             ctx.strokePath()
         }
 
-        // 外圈白框。
-        ctx.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
-        ctx.setLineWidth(size * 0.032)
-        ctx.strokeEllipse(in: CGRect(
-            x: center.x - radius, y: center.y - radius,
-            width: radius * 2, height: radius * 2
-        ))
+        drawPointer(palette: palette, in: ctx, size: size, center: center, radius: radius)
+    }
 
-        // MARK: 中心圓
+    /// 指針。**兩層**：先用背景色畫一個三角在盤上切出缺口，再畫一個內縮的主色三角。
+    ///
+    /// 只畫一層的話指針會跟第一格的紅色黏在一起 —— 兩者都是暖紅，邊界會消失。
+    ///
+    /// 它比原本的細指針大四倍而且移出盤外，原因是舊的在 29pt 就看不見了。
+    /// 現在 20pt 都還讀得出「有缺口的彩色分割圓」。
+    static func drawPointer(
+        palette: Palette,
+        in ctx: CGContext,
+        size: CGFloat,
+        center: CGPoint,
+        radius: CGFloat
+    ) {
+        let halfWidth = radius * pointerHalfWidth
+        let height = halfWidth * pointerHeightRatio
+        // 底邊在圓周外，頂點朝下插進盤裡 —— 插進去的那一段就是缺口。
+        let baseY = center.y + radius + radius * pointerGap
+        let apexY = baseY - height
 
-        // 中心圓直徑佔轉盤的 40%（原本 29%）。格數少了之後中心留白顯得空，
-        // 把刀叉放大才撐得住 60pt 的縮圖 —— 那個尺寸下扇形只是配色，刀叉才是可辨識的部分。
-        let hubRadius = radius * 0.40
-        ctx.saveGState()
-        ctx.setShadow(
-            offset: CGSize(width: 0, height: -size * 0.006),
-            blur: size * 0.022,
-            color: CGColor(red: 0.4, green: 0.18, blue: 0.05, alpha: 0.35)
-        )
-        ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
-        ctx.fillEllipse(in: CGRect(
-            x: center.x - hubRadius, y: center.y - hubRadius,
-            width: hubRadius * 2, height: hubRadius * 2
-        ))
-        ctx.restoreGState()
-
-        ctx.setStrokeColor(accent)
-        ctx.setLineWidth(size * 0.016)
-        ctx.strokeEllipse(in: CGRect(
-            x: center.x - hubRadius + size * 0.008,
-            y: center.y - hubRadius + size * 0.008,
-            width: (hubRadius - size * 0.008) * 2,
-            height: (hubRadius - size * 0.008) * 2
-        ))
-
-        // 中心的刀叉。用 SF Symbol 而不是自己畫路徑，形狀才跟 App 內其他圖示同一套。
-        let symbolSize = hubRadius * 1.18
-        let config = NSImage.SymbolConfiguration(pointSize: symbolSize, weight: .semibold)
-        if let symbol = NSImage(systemSymbolName: "fork.knife", accessibilityDescription: nil)?
-            .withSymbolConfiguration(config),
-           let mask = symbol.cgImage(forProposedRect: nil, context: nil, hints: nil) {
-            let width = Double(mask.width)
-            let height = Double(mask.height)
-            let scale = min(symbolSize / width, symbolSize / height)
-            let drawRect = CGRect(
-                x: center.x - width * scale / 2,
-                y: center.y - height * scale / 2,
-                width: width * scale,
-                height: height * scale
-            )
-            // SF Symbol 是黑色加 alpha，拿它的 alpha 當遮罩再填色。
-            ctx.saveGState()
-            ctx.translateBy(x: 0, y: drawRect.midY * 2)
-            ctx.scaleBy(x: 1, y: -1)
-            ctx.clip(to: drawRect, mask: mask)
-            ctx.setFillColor(accent)
-            ctx.fill(drawRect)
-            ctx.restoreGState()
+        func triangle(halfWidth: CGFloat, baseY: CGFloat, apexY: CGFloat) {
+            ctx.beginPath()
+            ctx.move(to: CGPoint(x: center.x, y: apexY))
+            ctx.addLine(to: CGPoint(x: center.x - halfWidth, y: baseY))
+            ctx.addLine(to: CGPoint(x: center.x + halfWidth, y: baseY))
+            ctx.closePath()
+            ctx.fillPath()
         }
 
-        // MARK: 指針
+        ctx.setFillColor(palette.background.cgColor)
+        triangle(halfWidth: halfWidth, baseY: baseY, apexY: apexY)
 
-        // 指向下方的三角形，壓在轉盤上緣。有這個才看得出是「轉盤」而不是圓餅圖。
-        let pointerHalfWidth = size * 0.070
-        let pointerTop = center.y + radius + size * 0.030
-        let pointerTip = center.y + radius - size * 0.075
-
-        ctx.beginPath()
-        ctx.move(to: CGPoint(x: center.x, y: pointerTip))
-        ctx.addLine(to: CGPoint(x: center.x - pointerHalfWidth, y: pointerTop))
-        ctx.addLine(to: CGPoint(x: center.x + pointerHalfWidth, y: pointerTop))
-        ctx.closePath()
-
-        ctx.saveGState()
-        ctx.setShadow(
-            offset: CGSize(width: 0, height: -size * 0.008),
-            blur: size * 0.025,
-            color: CGColor(red: 0.4, green: 0.18, blue: 0.05, alpha: 0.4)
-        )
-        ctx.setFillColor(accent)
-        ctx.fillPath()
-        ctx.restoreGState()
-
-        // 指針要再描一次路徑，fillPath 會把路徑清掉。
-        ctx.beginPath()
-        ctx.move(to: CGPoint(x: center.x, y: pointerTip))
-        ctx.addLine(to: CGPoint(x: center.x - pointerHalfWidth, y: pointerTop))
-        ctx.addLine(to: CGPoint(x: center.x + pointerHalfWidth, y: pointerTop))
-        ctx.closePath()
-        ctx.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
-        ctx.setLineWidth(size * 0.016)
-        ctx.setLineJoin(.round)
-        ctx.strokePath()
-
-        // MARK: 輸出
-
-        let outputPath = CommandLine.arguments.count > 1
-            ? CommandLine.arguments[1]
-            : "AppIcon.png"
-
-        guard let image = ctx.makeImage() else { fatalError("產生點陣圖失敗") }
-        let url = URL(fileURLWithPath: outputPath)
-        guard let destination = CGImageDestinationCreateWithURL(
-            url as CFURL, "public.png" as CFString, 1, nil
-        ) else {
-            fatalError("無法寫入 \(outputPath)")
-        }
-        CGImageDestinationAddImage(destination, image, nil)
-        guard CGImageDestinationFinalize(destination) else { fatalError("寫入 PNG 失敗") }
-        print("已產生 \(outputPath)（\(Int(size))×\(Int(size))）")
+        let inset = size * pointerInset
+        ctx.setFillColor(palette.pointer.cgColor)
+        triangle(halfWidth: halfWidth - inset, baseY: baseY - inset, apexY: apexY + inset)
     }
 }
 

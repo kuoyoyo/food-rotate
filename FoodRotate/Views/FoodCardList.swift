@@ -137,6 +137,7 @@ struct FoodRow: View {
     @State private var draftName = ""
     /// 左滑露出來的位移。0 是收合，負值是往左滑開。
     @State private var swipeOffset: CGFloat = 0
+    @State private var isConfirmingExclude = false
 
     var body: some View {
         ZStack(alignment: .trailing) {
@@ -189,6 +190,26 @@ struct FoodRow: View {
         } message: {
             Text("改過的名字會存下來，以後抽到這道都用新名字。")
         }
+        // 「以後都不要」是永久的，要問第二次。
+        //
+        // 它跟「這輪不要」現在同在一個 Menu、都是點一下，只有紅字之差 ——
+        // 但一個換一組就回來，一個是從此不再出現。**`role: .destructive` 只改顏色，
+        // 不改後果。** 手滑點錯下面那個，使用者未必知道去哪裡救。
+        //
+        // 「這輪不要」刻意**不加**確認：它可逆、而且是最常用的一個（左滑快捷就是為它做的），
+        // 加確認等於把最常用的動作變慢，去換一個不存在的風險。
+        .confirmationDialog(
+            "以後都不要「\(item.name)」？",
+            isPresented: $isConfirmingExclude,
+            titleVisibility: .visible
+        ) {
+            Button("以後都不要", role: .destructive, action: onExcludeForever)
+            Button("取消", role: .cancel) {}
+        } message: {
+            // 說明要講出**救回來的路徑** —— 永久性動作要讓人知道它不是不可逆的，
+            // 這跟「放寬要老實說明」是同一條原則：後果要講出來。
+            Text("這道菜不會再出現在轉盤上。可以在設定的「我的清單」裡改回來。")
+        }
     }
 
     private var row: some View {
@@ -240,7 +261,9 @@ struct FoodRow: View {
             }
             // 店家每次搜尋 id 都不一樣，記不住「以後」，所以沒有這個選項。
             if !item.isPlace {
-                Button("以後都不要", systemImage: "xmark.circle", role: .destructive, action: onExcludeForever)
+                Button("以後都不要", systemImage: "xmark.circle", role: .destructive) {
+                    isConfirmingExclude = true
+                }
             }
         } label: {
             Image(systemName: "ellipsis")

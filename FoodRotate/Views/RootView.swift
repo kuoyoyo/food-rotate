@@ -91,7 +91,8 @@ struct RootView: View {
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
                 // 壓暗層與 sheet 是兩條不同的曲線：它淡入，sheet 由下推入。
-                .transition(.opacity.animation(.easeInOut(duration: 0.22)))
+                // `reduceMotion` 時兩者都收斂到 0.15，跟 sheet 一起。
+                .transition(.opacity.animation(.easeInOut(duration: reduceMotion ? 0.15 : 0.22)))
 
             ResultSheet(
                 winner: winner,

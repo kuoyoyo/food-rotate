@@ -183,6 +183,11 @@ struct WheelView: View {
         Theme.wheelSlots(count: items.count, for: colorScheme)
     }
 
+    /// 分隔線的顏色 —— 就是頁底色。
+    private var divider: Color {
+        Theme.pageBackground(for: colorScheme)
+    }
+
     /// 這個格數的字級、行距與圖示尺寸。
     private var metrics: WheelLabel.Metrics {
         WheelLabel.metrics(forSlotCount: items.count)
@@ -318,6 +323,7 @@ struct WheelView: View {
         let metrics = metrics
         let items = items
         let matchedIcon = matchedIconIndex
+        let divider = divider
 
         return Canvas { context, size in
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
@@ -358,7 +364,13 @@ struct WheelView: View {
                 context.fill(path, with: .color(slot.fill))
 
                 if highlighted == nil {
-                    context.stroke(path, with: .color(.white.opacity(0.75)), lineWidth: 1.5)
+                    // 分隔線用**地色**不是白色。
+                    //
+                    // 白線在深色模式下會變成整個畫面最亮的東西，比任何一格都亮 ——
+                    // 注意力被邊界吸走。改成頁底色之後淺色幾乎沒差（頁底本來就接近白），
+                    // 深色的問題直接消失。跟 App Icon 是同一條規則：
+                    // **分隔線不是畫上去的線，是地色透出來的縫。**
+                    context.stroke(path, with: .color(divider), lineWidth: 1.5)
                 } else {
                     // 中選格的描邊加粗到 3.5，顏色用該格的文字色 —— 白描邊在蛋黃、抹茶
                     // 這種淺格子上幾乎看不見，那正是最需要被標示出來的時候。
@@ -380,15 +392,8 @@ struct WheelView: View {
                 )
             }
 
-            guard highlighted == nil else { return }
-            context.stroke(
-                Path(ellipseIn: CGRect(
-                    x: center.x - radius, y: center.y - radius,
-                    width: radius * 2, height: radius * 2
-                )),
-                with: .color(.white.opacity(0.9)),
-                lineWidth: 5
-            )
+            // 外圈的白色描邊已經取消：它原本的作用是把轉盤跟頁面分開，
+            // 但那件事色塊本身就做到了，留著只是在深色下多一圈亮邊。
         }
         .shadow(color: .black.opacity(0.18), radius: 12, y: 6)
     }
