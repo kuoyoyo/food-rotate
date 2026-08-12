@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>食物轉盤 — 其餘四頁規格 v1</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; }
+</style>
+</head>
+<body>
+<style>
+:root{--paper:#E7E6DF;--ink:#191A16;--ink-mid:#55574E;--ink-soft:#7E8077;--rule:#C7C6BD;--bad:#9B2F26;--ok:#3F6B45;
+--mono:ui-monospace,"SF Mono",Menlo,monospace;--sans:"PingFang TC","Noto Sans TC",system-ui,sans-serif;--gut:clamp(1.25rem,4vw,3rem)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#141512;--ink:#E5E4DB;--ink-mid:#9B9D92;--ink-soft:#75776D;--rule:#33352E;--bad:#E08A80;--ok:#8FBF8E}}
+:root[data-theme="dark"]{--paper:#141512;--ink:#E5E4DB;--ink-mid:#9B9D92;--ink-soft:#75776D;--rule:#33352E;--bad:#E08A80;--ok:#8FBF8E}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.72;-webkit-font-smoothing:antialiased}
+.wrap{max-width:74rem;margin:0 auto;padding:0 var(--gut) 5rem}
+.masthead{border-bottom:1.5px solid var(--ink);padding:clamp(2.5rem,7vw,4.5rem) 0 1.4rem;display:grid;gap:1.4rem}
+.stamp{font-family:var(--mono);font-size:.7rem;letter-spacing:.17em;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:.45rem 1.6rem}
+h1{font-size:clamp(2.1rem,6.5vw,3.8rem);line-height:1.06;letter-spacing:-.03em;font-weight:600;margin:0;text-wrap:balance}
+.dek{color:var(--ink-mid);max-width:46ch;margin:0}
+section{padding-top:clamp(3rem,7vw,5rem)}
+.row{display:grid;grid-template-columns:8.5rem minmax(0,1fr);gap:0 2.5rem;align-items:start}
+@media(max-width:860px){.row{grid-template-columns:minmax(0,1fr);gap:.75rem}}
+.label{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;color:var(--ink-soft);padding-top:.55rem;border-top:1px solid var(--ink);position:sticky;top:1.5rem}
+@media(max-width:860px){.label{position:static}}
+.col>*+*{margin-top:1.05rem}
+h2{font-size:clamp(1.5rem,3.4vw,2.2rem);line-height:1.25;letter-spacing:-.02em;font-weight:600;margin:0 0 .4rem;text-wrap:balance}
+p{margin:0;max-width:62ch;color:var(--ink-mid)}
+p strong{color:var(--ink);font-weight:600}
+code{font-family:var(--mono);font-size:.86em}
+.note{border-left:2px solid var(--ink);padding-left:1rem}
+.note.warn{border-left-color:var(--bad)}
+.tl{width:100%;font-size:.85rem;margin-top:1.5rem;display:block;overflow-x:auto}
+.tl table{width:100%;border-collapse:collapse;min-width:28rem}
+th,td{text-align:left;padding:.45rem .7rem;border-bottom:1px solid var(--rule)}
+th{font-family:var(--mono);font-size:.65rem;letter-spacing:.11em;color:var(--ink-soft);font-weight:400;white-space:nowrap}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pass{color:var(--ok);font-weight:600}.fail{color:var(--bad);font-weight:600}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));gap:1.5rem;margin-top:1.5rem}
+.pane{border-radius:14px;padding:1rem;display:grid;gap:10px;align-content:start;background:#EFEAE0}
+.pane .cap{font-family:var(--mono);font-size:.63rem;letter-spacing:.12em;color:#6C6761}
+.list{border-radius:10px;background:#F8F5EE;border:1px solid #DAD7D0;overflow:hidden}
+.hrow{height:56px;display:flex;align-items:center;gap:10px;padding:0 12px;position:relative}
+.hrow+.hrow::before{content:"";position:absolute;left:48px;right:0;top:0;height:1px;background:#DAD7D0}
+.em{font-size:26px;width:28px;text-align:center;flex-shrink:0}
+.ico{width:28px;display:grid;place-items:center;flex-shrink:0}
+.hn{flex:1;display:grid;line-height:1.3;min-width:0}
+.hn b{font-size:14px;font-weight:600;color:#241E18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hn em{font-style:normal;font-size:11px;color:#6C6761}
+.tb{height:16px;padding:0 8px;border-radius:4px;font-size:11px;background:#DAD7D0;color:#241E18;display:inline-flex;align-items:center;flex-shrink:0}
+.ht{font-size:11px;color:#6C6761;flex-shrink:0}
+.seg{display:inline-grid;grid-auto-flow:column;background:#DAD7D0;border-radius:9px;padding:2px;gap:2px}
+.seg span{padding:5px 18px;border-radius:7px;font-size:13px;color:#241E18}
+.seg span.on{background:#F8F5EE;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.seg.bad span.off{color:#6C6761}
+.seg.sauce span.on{background:#9B3B2C;color:#F8F5EE}
+.hero{display:grid;justify-items:center;gap:8px;padding:1.5rem 1rem;background:#EFEAE0;border-radius:14px}
+.hero .t{font-size:22px;font-weight:700;color:#241E18}
+.hero .s{font-size:12px;color:#6C6761}
+.closing{margin-top:clamp(3rem,7vw,5rem);border-top:1.5px solid var(--ink);padding-top:1.4rem;display:grid;gap:.7rem}
+.sig{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;color:var(--ink-soft)}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+
+<div class="wrap">
+<header class="masthead">
+  <div class="stamp"><span>食物轉盤 FOOD ROTATE</span><span>其餘四頁規格 v1</span>
+  <span>S5-B · 最後一批</span><span>2026-08-12</span><span>設計 → PM</span></div>
+  <h1>我們可以換掉<br>自己的樣式，<br>不能換掉<br>使用者的內容。</h1>
+  <p class="dek">歷史與我的清單顯示的 emoji 是使用者自己挑的。
+  換成線稿圖示不是「套用設計系統」，是「丟掉他輸入的東西」——
+  而且結果比想像中差。</p>
+</header>
+
+<section><div class="row"><div class="label">01 — emoji</div><div class="col">
+<h2>「換成線稿」的實際後果。</h2>
+<p>自訂料理的<strong>吃法不是必填</strong>（<code>canSave</code> 只檢查名稱非空），
+沒填就落到中性刀叉。左邊是換掉之後的樣子。</p>
+
+<div class="pair">
+  <div class="pane"><div class="cap">全部換成線稿</div>
+    <div class="list"><div class="hrow"><span class="ico"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#6C6761" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 8.6 V21.4"/><path d="M3 2.6 V8.6 H9.4 V2.6"/><path d="M6.2 2.6 V8.6"/><path d="M17.4 2.6 q3.6 4.4 0 8.8 V21.4"/></g></svg></span><span class="hn"><b>我的披薩</b><em>日式・清爽</em></span><span class="ht">3 分鐘前</span></div><div class="hrow"><span class="ico"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#6C6761" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 12.6 A7.4 7.8 0 0 0 17 12.6 Z"/><path d="M1 12.6 H18.2"/><path d="M10.5 11 L21 2.6"/><path d="M12.6 11.6 L22 4"/></g></svg></span><span class="hn"><b>牛肉麵</b><em>日式・清爽</em></span><span class="tb">台</span><span class="ht">3 分鐘前</span></div><div class="hrow"><span class="ico"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#6C6761" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18.4 q0 -13.4 9 -13.4 q9 0 9 13.4 Z"/><path d="M1.6 18.4 H22.4"/><path d="M12 4.2 V9.6"/><path d="M7.6 6.2 L9.8 10.6"/><path d="M16.4 6.2 L14.2 10.6"/></g></svg></span><span class="hn"><b>水餃</b><em>日式・清爽</em></span><span class="tb">中</span><span class="ht">3 分鐘前</span></div><div class="hrow"><span class="ico"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="#6C6761" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 8.6 V21.4"/><path d="M3 2.6 V8.6 H9.4 V2.6"/><path d="M6.2 2.6 V8.6"/><path d="M17.4 2.6 q3.6 4.4 0 8.8 V21.4"/></g></svg></span><span class="hn"><b>阿嬤的滷味</b><em>日式・清爽</em></span><span class="ht">3 分鐘前</span></div></div></div>
+  <div class="pane"><div class="cap">保留 emoji ＋ 角標（建議）</div>
+    <div class="list"><div class="hrow"><span class="em">🍕</span><span class="hn"><b>我的披薩</b><em>日式・清爽</em></span><span class="ht">3 分鐘前</span></div><div class="hrow"><span class="em">🍜</span><span class="hn"><b>牛肉麵</b><em>日式・清爽</em></span><span class="tb">台</span><span class="ht">3 分鐘前</span></div><div class="hrow"><span class="em">🥟</span><span class="hn"><b>水餃</b><em>日式・清爽</em></span><span class="tb">中</span><span class="ht">3 分鐘前</span></div><div class="hrow"><span class="em">🍲</span><span class="hn"><b>阿嬤的滷味</b><em>日式・清爽</em></span><span class="ht">3 分鐘前</span></div></div></div>
+</div>
+
+<div class="note warn" style="margin-top:1.5rem"><p>
+左邊第一列與第四列 ——「我的披薩」與「阿嬤的滷味」是使用者自己加的，
+他挑了 🍕 和 🍲，<strong>換完之後兩列長得一模一樣</strong>，
+而且那個刀叉不帶任何資訊。<br><br>
+<strong>那不是換一種視覺，是降級成無資訊。</strong>
+</p></div>
+
+<div class="note" style="margin-top:1.25rem"><p>
+線稿圖示原本要傳達的是「類型」（S2 已定義：圖示負責類型、名字負責身分）。
+<strong>那個資訊改用 <code>TagBadge</code> 用文字傳達，一點都沒有少</strong> ——
+右邊「牛肉麵」「水餃」的角標就是。<br><br>
+「整個 App 是同一套東西」靠的是 <strong>token 與元件</strong>，
+不是「每個地方都用同一種圖像」。
+</p></div>
+
+<div class="tl"><table>
+<thead><tr><th>為什麼不採混合規則（內建線稿／自訂 emoji）</th></tr></thead><tbody>
+<tr><td>使用者無從得知規則 —— 他不知道哪些是內建的</td></tr>
+<tr><td>「以後都不要」可以排除內建料理，那一區必然兩種並存</td></tr>
+<tr><td>兩條顯示路徑，日後任何人改一條就會不一致</td></tr>
+</tbody></table></div>
+</div></div></section>
+
+<section><div class="row"><div class="label">02 — 分段控制</div><div class="col">
+<h2>地圖偏好不該用主色填滿。</h2>
+<div class="pair">
+  <div class="pane"><div class="cap">建議</div>
+    <div class="seg"><span class="on">Apple 地圖</span><span>Google 地圖</span></div></div>
+  <div class="pane"><div class="cap">不建議 · 主色填滿</div>
+    <div class="seg sauce"><span class="on">Apple 地圖</span><span>Google 地圖</span></div></div>
+</div>
+<p style="margin-top:1.25rem"><code>sauce</code> 實心在這套系統裡代表<strong>主要動作</strong>與
+<strong>已選的篩選條件</strong> —— 那些會直接改變轉盤內容。
+<strong>選 Apple 還是 Google 是一個偏好，不是一個決策。</strong>
+而且兩段其中一段被填滿，另一段會顯得像被停用。</p>
+
+<div class="tl"><table>
+<thead><tr><th>元素</th><th>值</th><th>底</th><th>對比</th></tr></thead><tbody>
+<tr><td>選中段文字</td><td class="num">#241E18</td><td class="num">#F8F5EE</td><td class="num pass">15.14 ✓</td></tr>
+<tr><td><strong>未選文字（採用 <code>text</code>）</strong></td><td class="num">#241E18</td><td class="num">#DAD7D0</td><td class="num pass">11.47 ✓</td></tr>
+<tr><td>未選文字（若用 <code>textSecondary</code>）</td><td class="num">#6C6761</td><td class="num">#DAD7D0</td><td class="num fail">3.90 ✗</td></tr>
+</tbody></table></div>
+<p style="margin-top:1rem"><strong>未選文字刻意用 <code>text</code> 不用 <code>textSecondary</code></strong> ——
+後者實算只有 3.90，不合格。選中與否靠<strong>選中段的底色</strong>表達，不靠文字色，
+這也正是 iOS 原生分段控制的做法。</p>
+</div></div></section>
+
+<section><div class="row"><div class="label">03 — 首次啟動</div><div class="col">
+<h2>第一眼看到的，就該是剛剛點的那顆。</h2>
+<div class="pair">
+  <div class="pane"><div class="cap">現況</div>
+    <div class="hero"><div style="font-size:68px;line-height:1">🎡</div>
+      <div class="t">食物轉盤</div><div class="s">不知道吃什麼的時候，讓它幫你決定</div></div></div>
+  <div class="pane"><div class="cap">建議</div>
+    <div class="hero"><svg width="96" height="96" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M 512 512 L 512.0 71.7 A 440 440 0 0 1 893.3 291.8 Z" fill="#993D25"/><path d="M 512 512 L 893.3 291.8 A 440 440 0 0 1 893.3 732.2 Z" fill="#838F47"/><path d="M 512 512 L 893.3 732.2 A 440 440 0 0 1 512.0 952.3 Z" fill="#456D57"/><path d="M 512 512 L 512.0 952.3 A 440 440 0 0 1 130.7 732.2 Z" fill="#396B78"/><path d="M 512 512 L 130.7 732.2 A 440 440 0 0 1 130.7 291.8 Z" fill="#765688"/><path d="M 512 512 L 130.7 291.8 A 440 440 0 0 1 512.0 71.7 Z" fill="#8E4B2C"/><g stroke="#EFEAE0" stroke-width="16"><line x1="512" y1="512" x2="512.0" y2="71.7"/><line x1="512" y1="512" x2="893.3" y2="291.8"/><line x1="512" y1="512" x2="893.3" y2="732.2"/><line x1="512" y1="512" x2="512.0" y2="952.3"/><line x1="512" y1="512" x2="130.7" y2="732.2"/><line x1="512" y1="512" x2="130.7" y2="291.8"/></g><path d="M 512 159.7 L 423.9 27.6 L 600.1 27.6 Z" fill="#EFEAE0"/><path d="M 512 147.5 L 436.2 38.1 L 587.8 38.1 Z" fill="#9B3B2C"/></svg>
+      <div class="t">食物轉盤</div><div class="s">不知道吃什麼的時候，讓它幫你決定</div></div></div>
+</div>
+<p style="margin-top:1.25rem">使用者剛剛在桌面上點了那顆 icon，第一個畫面出現同一個圖形 ——
+<strong>「我點的就是這個」</strong>。現在的 🎡 是一個摩天輪，跟 icon 沒有任何關係。</p>
+<div class="note" style="margin-top:1.25rem"><p>
+這個標記是<strong>我們的內容</strong>，不是使用者輸入的，所以換掉沒有第 01 節的問題。<br><br>
+<strong>但不建議做成多頁引導。</strong> 這個 App 的價值是「三秒內給你答案」，
+在使用者跟轉盤之間插三頁滑動說明，是用一個違反產品主張的方式介紹產品。
+</p></div>
+</div></div></section>
+
+<div class="closing">
+<p class="sig">S5-B 交付 · 設計端最後一批</p>
+<p>八項待裁示在規格第八節。<strong>本批新增 token 為零</strong> ——
+四頁全部用既有的 token 與元件。</p>
+</div>
+</div>
+
+</body>
+</html>
