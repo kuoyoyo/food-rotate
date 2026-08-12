@@ -29,15 +29,26 @@ struct FilterBar: View {
     /// 六個維度攤開來要佔掉整個第一屏，轉盤會被擠到螢幕外。
     /// 轉盤才是這個 App 的主體，所以預設收起來，要調條件時才展開。
     @State private var isExpanded = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             summaryRow
 
             if isExpanded {
-                ForEach(activeDimensions, id: \.self) { dimension in
-                    dimensionRow(dimension)
-                }
+                // 34 個標籤自動換行排成網格，沒有一個藏在畫面外。
+                //
+                // **`activeDimensions` 繼續有作用**：「去哪吃」只傳菜系進來，
+                // 其餘五區不渲染 —— 少五區只是變短，版面不會塌。
+                TagGrid(
+                    filter: $filter,
+                    dimensions: activeDimensions,
+                    // 篩選器裡的忌口是使用者的限制，要有警示權重。
+                    emphasizesRestriction: true,
+                    titleOverride: { title(for: $0) == $0.rawValue ? nil : title(for: $0) },
+                    noteOverride: { note(for: $0) },
+                    onChange: onChange
+                )
 
                 if !filter.isEmpty {
                     Button {
@@ -84,11 +95,20 @@ struct FilterBar: View {
                 .font(.subheadline.weight(.medium))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 9)
+                // 有條件時用實心主色，跟選中的 chip 同一套；沒條件時用未選 chip 那一套。
+                // 摘要本身**不能省成一個「篩選」按鈕** —— 收起來之後使用者要看得出
+                // 現在的轉盤是在什麼條件下抽出來的，否則會以為 App 隨便給。
                 .background(
-                    filter.isEmpty ? Color(.secondarySystemGroupedBackground) : Color.accentColor.opacity(0.15),
+                    filter.isEmpty
+                        ? Theme.hairline(for: colorScheme)
+                        : Theme.sauce(for: colorScheme),
                     in: Capsule()
                 )
-                .foregroundStyle(filter.isEmpty ? Color.primary : Color.accentColor)
+                .foregroundStyle(
+                    filter.isEmpty
+                        ? Theme.text(for: colorScheme)
+                        : (colorScheme == .dark ? Theme.Dark.onSauce : Theme.Light.onSauce)
+                )
             }
             .buttonStyle(.plain)
 
@@ -118,54 +138,9 @@ struct FilterBar: View {
             // 講清楚它的性質，不然使用者會把「附近沒有歐陸的店」讀成 App 壞了。
             return "拿去搜店名，不是店家分類"
         }
-        // 忌口跟其他列的行為不一樣：其他列湊不滿格時會自動放寬，忌口不會。
+        // 忌口那一區現在整區染色、標題是警示色，「不會被自動放寬」從外觀就看得出來，
+        // 但這句話還是留著 —— 外觀說的是「這區不一樣」，這句說的是「哪裡不一樣」。
         return dimension.isHardConstraint ? "一定不會出現" : nil
-    }
-
-    /// 一個維度一列，橫向捲動。
-    private func dimensionRow(_ dimension: FoodTag.Dimension) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 6) {
-                Text(title(for: dimension))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                if let note = note(for: dimension) {
-                    Text(note)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(dimension.tags, id: \.self) { tag in
-                        chip(tag)
-                    }
-                }
-                .padding(.horizontal, 2)
-            }
-            .scrollClipDisabled()
-        }
-    }
-
-    private func chip(_ tag: FoodTag) -> some View {
-        let isOn = filter.tags.contains(tag)
-        return Button {
-            filter.toggle(tag)
-            Haptics.buttonTap()
-            onChange()
-        } label: {
-            Text(tag.rawValue)
-                .font(.footnote)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(
-                    isOn ? Color.accentColor.opacity(0.18) : Color(.secondarySystemGroupedBackground),
-                    in: Capsule()
-                )
-                .foregroundStyle(isOn ? Color.accentColor : .primary)
-        }
-        .buttonStyle(.plain)
     }
 
     /// 找多遠以內的店。只有「去哪吃」看得到。

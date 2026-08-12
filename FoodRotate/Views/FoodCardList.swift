@@ -1,12 +1,13 @@
 import SwiftUI
 
-/// 轉盤下方的食物清單，每一道都列出優缺點。
+/// 轉盤下方的候選清單。
 ///
 /// 這是這個 App 真正解決問題的地方：轉盤只給你一個答案，清單讓你知道
 /// 其他選項各自好在哪、雷在哪，才有辦法接受或推翻轉盤的結果。
 ///
-/// 展開後每張卡都能直接找附近的店、改名或刪掉。找附近特別重要：
-/// 結果頁關掉之後就回不去了，沒有這個入口就得重轉一次才能查同一道菜。
+/// **改成一份清單而不是一疊卡片。** 以前每一道是獨立卡片（圓角 + 內距 + 卡間距，
+/// 單張約 64pt），12 道就是 768pt；改成同一個容器裡的列之後單列 44pt，省下約三成高度。
+/// 視覺上也才像「一份清單」而不是「一疊各自獨立的東西」。
 struct FoodCardList: View {
     let items: [FoodItem]
     let winnerName: String?
@@ -21,45 +22,106 @@ struct FoodCardList: View {
     /// 這家店的電話，沒有就回 nil。
     let phoneNumber: (FoodItem) -> String?
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: Theme.space12) {
             HStack {
                 Text("候選清單")
-                    .font(.headline)
+                    .font(Theme.headline)
+                    .foregroundStyle(Theme.text(for: colorScheme))
                 Spacer()
                 Text("\(items.count) 道")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Theme.caption)
+                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
             }
 
-            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                FoodCard(
-                    item: item,
-                    isWinner: item.name == winnerName,
-                    canDelete: items.count > 2,
-                    onRename: { onRename(item, $0) },
-                    onDelete: { onDelete(item) },
-                    onExcludeForever: { onExcludeForever(item) },
-                    onOpenMaps: { onOpenMaps(item) },
-                    onCall: { onCall(item) },
-                    phoneNumber: phoneNumber(item)
-                )
+            VStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                    if index > 0 {
+                        // 分隔線縮排到圖示右緣，列與列才不會看起來像表格。
+                        Divider()
+                            .overlay(Theme.hairline(for: colorScheme))
+                            .padding(.leading, Theme.space12 + 24 + Theme.space12)
+                    }
+                    FoodRow(
+                        item: item,
+                        isWinner: item.name == winnerName,
+                        canDelete: items.count > 2,
+                        onRename: { onRename(item, $0) },
+                        onDelete: { onDelete(item) },
+                        onExcludeForever: { onExcludeForever(item) },
+                        onOpenMaps: { onOpenMaps(item) },
+                        onCall: { onCall(item) },
+                        phoneNumber: phoneNumber(item)
+                    )
+                }
             }
+            .background(
+                Theme.card(for: colorScheme),
+                in: RoundedRectangle(cornerRadius: Theme.radiusLarge)
+            )
+            // 一定要裁切：列左滑之後會往容器外跑，露出來的動作按鈕也會凸出右緣。
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.radiusLarge)
+                    .stroke(Theme.hairline(for: colorScheme), lineWidth: Theme.hairlineWidth)
+            )
 
             if !items.isEmpty {
-                Text("點卡片看優缺點，可以改名或把這輪不想吃的刪掉。轉盤會跟著更新。")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                Text("點一列看優缺點，右邊的 ⋯ 可以改名或把這輪不想吃的拿掉。轉盤會跟著更新。")
+                    .font(Theme.micro)
+                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .frame(maxWidth: .infinity, alignment: .center)
             }
         }
     }
 }
 
-struct FoodCard: View {
+/// 左滑「這輪不要」的位移與門檻。
+///
+/// 抽成純函數是因為手勢本身測不到（沒有觸控就驅動不了），但**這些數字測得到**。
+/// 上一版這裡用 `.swipeActions`，那個修飾符只在 `List` 的 row 上有作用，
+/// 掛在 `VStack` 的子 view 上編得過、不當機、沒有警告，卻什麼都不會發生 ——
+/// 完全沒作用的程式碼比範圍錯的更糟，因為它看起來是做完的。
+enum RowSwipe {
+    /// 滑開後動作按鈕的寬度。
+    static let actionWidth: CGFloat = 96
+
+    /// 一口氣滑過這麼多就直接執行，不必再點按鈕。
+    static let performThreshold: CGFloat = 200
+
+    /// 最多能拖到哪。超過就不再跟手，讓人知道到底了。
+    static let maxPull: CGFloat = 260
+
+    /// 拖曳中的位移。只往左（負值），右滑不會把列拉出容器。
+    static func offset(base: CGFloat, translation: CGFloat) -> CGFloat {
+        min(0, max(-maxPull, base + translation))
+    }
+
+    enum Resolution: Equatable {
+        /// 收回去。
+        case closed
+        /// 停在露出按鈕的位置。
+        case opened
+        /// 直接執行「這輪不要」。
+        case perform
+    }
+
+    /// 放手之後怎麼處理。
+    static func resolve(offset: CGFloat) -> Resolution {
+        let pulled = -offset
+        if pulled >= performThreshold { return .perform }
+        // 過了按鈕寬度的一半就停在開啟位置，否則彈回去。
+        return pulled >= actionWidth / 2 ? .opened : .closed
+    }
+}
+
+/// 清單裡的一列。
+struct FoodRow: View {
     let item: FoodItem
     let isWinner: Bool
-    /// 剩兩道就不給刪了，轉盤至少要有兩格才轉得起來。
+    /// 剩兩道就不給刪了，轉盤至少要有兩格才轉得起來（產品規則）。
     let canDelete: Bool
     let onRename: (String) -> Void
     let onDelete: () -> Void
@@ -73,52 +135,48 @@ struct FoodCard: View {
     @State private var showNearby = false
     @State private var isRenaming = false
     @State private var draftName = ""
-    @State private var isConfirmingExclude = false
+    /// 左滑露出來的位移。0 是收合，負值是往左滑開。
+    @State private var swipeOffset: CGFloat = 0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-
-            if isExpanded {
-                VStack(alignment: .leading, spacing: 10) {
-                    Divider()
-                    pointList(
-                        // 店家借用同一個型別，`pros` 裡放的是地址。
-                        title: item.isPlace ? "地址" : "優點",
-                        symbol: "checkmark.circle.fill",
-                        tint: Theme.positive(for: colorScheme),
-                        points: item.pros
-                    )
-                    pointList(
-                        title: "缺點",
-                        symbol: "exclamationmark.triangle.fill",
-                        tint: Theme.negative(for: colorScheme),
-                        points: item.cons
-                    )
-
-                    // MapKit 沒有營業時間，所以不猜。有電話就讓人自己打去問。
-                    if let phoneNumber {
-                        Button(action: onCall) {
-                            Label("打電話問（\(phoneNumber)）", systemImage: "phone.fill")
-                                .font(.caption.weight(.medium))
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Color.accentColor)
-                    }
-
-                    actions
-                }
-                .padding(.top, 10)
+        ZStack(alignment: .trailing) {
+            // 左滑之後從底下露出來的動作。
+            if canDelete {
+                deleteAction
             }
+
+            VStack(alignment: .leading, spacing: 0) {
+                row
+
+                if isExpanded {
+                    details
+                        .padding(.horizontal, Theme.space12)
+                        .padding(.bottom, Theme.space12)
+                }
+            }
+            .background(alignment: .leading) {
+                // 中選的那道左側一條主色。比整列換底色安靜，但掃一眼就找得到。
+                if isWinner {
+                    Theme.sauce(for: colorScheme)
+                        .frame(width: 3)
+                }
+            }
+            // 列本身要有不透明底，否則會透出後面的動作色塊。
+            //
+            // **形狀要明講 `Rectangle`。** 不給形狀的話 iOS 26 會讓它跟容器的圓角做同心處理，
+            // 每一列的底都變成圓角矩形，列與列之間的凹處就露出後面的橘色 ——
+            // 靜止狀態下整份清單右緣會排一整排小尖角。要圓角的是整個容器，不是每一列。
+            .background(Theme.card(for: colorScheme), in: Rectangle())
+            .offset(x: swipeOffset)
+            .simultaneousGesture(swipeToDelete)
         }
-        .padding(14)
-        .background(.background, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(isWinner ? Color.accentColor : .clear, lineWidth: 2)
-        )
         .contentShape(Rectangle())
         .onTapGesture {
+            // 已經滑開的時候，點一下是收回去，不是展開。
+            guard swipeOffset == 0 else {
+                withAnimation(.snappy(duration: 0.22)) { swipeOffset = 0 }
+                return
+            }
             withAnimation(.snappy(duration: 0.22)) { isExpanded.toggle() }
         }
         .sheet(isPresented: $showNearby) {
@@ -131,112 +189,158 @@ struct FoodCard: View {
         } message: {
             Text("改過的名字會存下來，以後抽到這道都用新名字。")
         }
-        .confirmationDialog("不要「\(item.name)」了？", isPresented: $isConfirmingExclude, titleVisibility: .visible) {
-            Button("這輪不要") { onDelete() }
-            // 店家每次搜尋 id 都不一樣，記不住「以後」，所以只給這一輪的選項。
+    }
+
+    private var row: some View {
+        HStack(spacing: Theme.space12) {
+            // 跟轉盤同一套線稿圖示。清單裡的圖示是輔助資訊，不該比菜名重，所以走次要色。
+            Image(item.icon.assetName)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 24, height: 24)
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+
+            Text(item.name)
+                .font(Theme.headline)
+                .fontWeight(isWinner ? .semibold : .regular)
+                .foregroundStyle(Theme.text(for: colorScheme))
+                .lineLimit(1)
+
+            Spacer(minLength: Theme.space8)
+
+            // 分類文字換成角標 —— 同樣的資訊，但跟結果頁是同一個元件。
+            TagBadge.cuisine(for: item, surface: colorScheme == .dark ? .dark : .light)
+            TagBadge.form(for: item, surface: colorScheme == .dark ? .dark : .light)
+
+            menu
+        }
+        .padding(.horizontal, Theme.space12)
+        .frame(minHeight: 44)
+    }
+
+    /// 五個操作收進一個 `⋯`。密度提高之後三顆膠囊按鈕放不下。
+    private var menu: some View {
+        Menu {
             if !item.isPlace {
-                Button("以後都不要", role: .destructive) { onExcludeForever() }
+                Button("找附近有賣的店", systemImage: "mappin.and.ellipse") { showNearby = true }
+            } else {
+                Button("導航過去", systemImage: "arrow.triangle.turn.up.right.circle.fill", action: onOpenMaps)
             }
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text(item.isPlace ? "從這一輪的轉盤拿掉。" : "「以後都不要」之後可以在設定頁還原。")
-        }
-    }
-
-    private var header: some View {
-        HStack(spacing: 12) {
-            Text(item.displayEmoji)
-                .font(.system(size: 30))
-                .frame(width: 44, height: 44)
-                .background(Color(.secondarySystemGroupedBackground), in: Circle())
-
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(item.name)
-                        .font(.headline)
-                    if isWinner {
-                        Text("轉中")
-                            .font(.caption2.weight(.bold))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.accentColor, in: Capsule())
-                            .foregroundStyle(.white)
-                    }
-                }
-                Text(item.category)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            if let phoneNumber {
+                Button("打電話問（\(phoneNumber)）", systemImage: "phone.fill", action: onCall)
             }
-
-            Spacer(minLength: 0)
-
-            Image(systemName: "chevron.down")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .rotationEffect(.degrees(isExpanded ? 180 : 0))
-        }
-    }
-
-    /// 展開後的操作列。三個動作都是在「這一道」上做事，所以放在卡片裡而不是全域工具列。
-    private var actions: some View {
-        HStack(spacing: 8) {
-            Button {
-                if item.isPlace { onOpenMaps() } else { showNearby = true }
-            } label: {
-                Label(
-                    item.isPlace ? "導航" : "找附近",
-                    systemImage: item.isPlace ? "arrow.triangle.turn.up.right.circle.fill" : "mappin.and.ellipse"
-                )
-                .font(.caption.weight(.medium))
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.capsule)
-            .controlSize(.small)
-
-            Button {
+            Button("改名", systemImage: "pencil") {
                 draftName = item.name
                 isRenaming = true
-            } label: {
-                Label("改名", systemImage: "pencil")
-                    .font(.caption.weight(.medium))
-                    .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.capsule)
-            .controlSize(.small)
-
-            Button(role: .destructive) {
-                isConfirmingExclude = true
-            } label: {
-                Label("不要", systemImage: "trash")
-                    .font(.caption.weight(.medium))
-                    .frame(maxWidth: .infinity)
+            // 轉盤最少要留 2 格才轉得起來，所以剩兩道就不給拿掉。
+            if canDelete {
+                Button("這輪不要", systemImage: "minus.circle", action: onDelete)
             }
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.capsule)
-            .controlSize(.small)
-            .disabled(!canDelete)
+            // 店家每次搜尋 id 都不一樣，記不住「以後」，所以沒有這個選項。
+            if !item.isPlace {
+                Button("以後都不要", systemImage: "xmark.circle", role: .destructive, action: onExcludeForever)
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(Theme.subheadline)
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .frame(width: 32, height: 44)
+                .contentShape(Rectangle())
         }
-        // 按鈕要吃自己的點擊，不能被卡片的展開手勢搶走。
-        .buttonStyle(.automatic)
-        .onTapGesture {}
+    }
+
+    /// 左滑露出來的「這輪不要」。
+    ///
+    /// 這是最常用的一個動作，每次都開 `⋯` Menu 太慢，所以給一個快捷。
+    /// **可用條件跟 Menu 裡那一項共用同一個 `canDelete`** —— 轉盤最少要留 2 格。
+    private var deleteAction: some View {
+        // 用色塊 + 手勢而不是 `Button`：iOS 26 的按鈕即使 `.plain` 也會帶自己的形狀，
+        // 露出來的動作會變成一塊圓角矩形浮在列上，貼不齊容器邊緣。
+        Theme.negative(for: colorScheme)
+            .frame(width: RowSwipe.actionWidth)
+            .overlay {
+                Image(systemName: "minus.circle")
+                    .font(Theme.headline)
+                    .foregroundStyle(colorScheme == .dark ? Theme.Dark.onSauce : Theme.Light.onSauce)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.snappy(duration: 0.22)) { swipeOffset = 0 }
+                onDelete()
+            }
+            .accessibilityElement()
+            .accessibilityLabel("這輪不要")
+            .accessibilityAddTraits(.isButton)
+    }
+
+    /// 自己做的左滑。
+    ///
+    /// 用 `simultaneousGesture` 並先判斷方向：這一列在一個垂直捲動的 `ScrollView` 裡，
+    /// 不判方向的話往下滑會被當成滑動列（跟 S3 的 hero 拖曳是同一類問題）。
+    private var swipeToDelete: some Gesture {
+        DragGesture(minimumDistance: 12)
+            .onChanged { value in
+                guard canDelete else { return }
+                // 橫向意圖才接手，否則讓捲動去處理。
+                guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                swipeOffset = RowSwipe.offset(base: swipeBase, translation: value.translation.width)
+            }
+            .onEnded { _ in
+                guard canDelete else { return }
+                switch RowSwipe.resolve(offset: swipeOffset) {
+                case .perform:
+                    withAnimation(.snappy(duration: 0.22)) { swipeOffset = 0 }
+                    onDelete()
+                case .opened:
+                    withAnimation(.snappy(duration: 0.22)) { swipeOffset = -RowSwipe.actionWidth }
+                case .closed:
+                    withAnimation(.snappy(duration: 0.22)) { swipeOffset = 0 }
+                }
+            }
+    }
+
+    /// 這次拖曳的起點。已經滑開的話從開啟位置繼續。
+    private var swipeBase: CGFloat {
+        swipeOffset <= -RowSwipe.actionWidth ? -RowSwipe.actionWidth : 0
+    }
+
+    /// 點開之後在同一列下方長出優缺點，不做卡片轉場 —— 收合時整份清單維持高密度。
+    private var details: some View {
+        VStack(alignment: .leading, spacing: Theme.space8) {
+            pointList(
+                // 店家借用同一個型別，`pros` 裡放的是地址。
+                title: item.isPlace ? "地址" : "優點",
+                symbol: "checkmark.circle.fill",
+                tint: Theme.positive(for: colorScheme),
+                points: item.pros
+            )
+            pointList(
+                title: "缺點",
+                symbol: "exclamationmark.triangle.fill",
+                tint: Theme.negative(for: colorScheme),
+                points: item.cons
+            )
+        }
+        .padding(.leading, 24 + Theme.space12)
     }
 
     @ViewBuilder
     private func pointList(title: String, symbol: String, tint: Color, points: [String]) -> some View {
         if !points.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Theme.space4) {
                 Text(title)
-                    .font(.caption.weight(.semibold))
+                    .font(Theme.caption)
                     .foregroundStyle(tint)
                 ForEach(Array(points.enumerated()), id: \.offset) { _, point in
-                    HStack(alignment: .top, spacing: 7) {
+                    HStack(alignment: .top, spacing: Theme.space8) {
                         Image(systemName: symbol)
-                            .font(.caption)
+                            .font(Theme.caption)
                             .foregroundStyle(tint)
                         Text(point)
-                            .font(.footnote)
+                            .font(Theme.footnote)
+                            .foregroundStyle(Theme.text(for: colorScheme))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }

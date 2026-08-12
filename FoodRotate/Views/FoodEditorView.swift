@@ -97,28 +97,23 @@ struct FoodEditorView: View {
         }
     }
 
-    /// 標籤依維度分組，跟轉盤上的篩選器用同一套語彙。
+    /// 標籤。**跟篩選器用同一個 `TagGrid`**，不另做一套。
+    ///
+    /// 唯一的差別是忌口區不加警示權重：篩選器裡的「無牛」是使用者的限制
+    /// （一條不會被自動放寬、有後果的規則），這裡的「無牛」是**在描述這道菜不含牛**。
+    /// 同一個標籤在兩個畫面語意不同，只有前者需要警示。
     private var tagsSection: some View {
-        ForEach(FoodTag.Dimension.allCases, id: \.self) { dimension in
-            Section(dimension.rawValue) {
-                ForEach(dimension.tags, id: \.self) { tag in
-                    Button {
-                        if tags.contains(tag) { tags.remove(tag) } else { tags.insert(tag) }
-                    } label: {
-                        HStack {
-                            Text(tag.rawValue)
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            if tags.contains(tag) {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(Color.accentColor)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+        Section("標籤") {
+            TagGrid(
+                filter: Binding(
+                    get: { FilterSelection(tags: tags) },
+                    set: { tags = $0.tags }
+                ),
+                dimensions: FoodTag.Dimension.allCases,
+                emphasizesRestriction: false,
+                onChange: {}
+            )
+            .padding(.vertical, Theme.space8)
         }
     }
 

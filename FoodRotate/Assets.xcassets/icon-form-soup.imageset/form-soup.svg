@@ -1,7 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="湯的">
   <title>湯的</title>
   <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M8 3.4 a4.6 4.6 0 1 0 0.01 0 Z"/>
-    <path d="M11.3 11.3 L21 21"/>
+    <path d="M3 13.6 A9 7.2 0 0 0 21 13.6 Z"/>
+    <path d="M1.4 13.6 H22.6"/>
+    <path d="M12 13.6 V5.4"/>
+    <path d="M12 5.4 m -2.4 0 a2.4 3 0 1 0 4.8 0 a2.4 3 0 1 0 -4.8 0"/>
   </g>
 </svg>
