@@ -135,6 +135,14 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:now
 <p style="margin-top:1rem"><strong>未選文字刻意用 <code>text</code> 不用 <code>textSecondary</code></strong> ——
 後者實算只有 3.90，不合格。選中與否靠<strong>選中段的底色</strong>表達，不靠文字色，
 這也正是 iOS 原生分段控制的做法。</p>
+<p style="margin-top:.75rem"><strong>工程實測補充（2026-08-13）</strong> ——
+未選段的實際底色是系統畫的，不是 <code>hairline</code>；量到的真值是 <strong>3.45</strong>，
+比推導值 3.90 <strong>更差</strong>。結論不變，且更硬。
+<strong>系統元件的底色只有實機量得到。</strong></p>
+<p style="margin-top:.75rem"><strong>更正</strong> —— 歷史／我的清單的「條件摘要」原寫
+淺 4.67／深 7.28，那是疊在 <code>pageBackground</code> 上的值；它實際在 <code>card</code> 上，
+正確是 <strong>5.14／6.62</strong>。兩邊都過，結論不變。
+<strong>對比值要對著它真正疊上去的那一層算，不是對著那一頁的底色算。</strong></p>
 </div></div></section>
 
 <section><div class="row"><div class="label">03 — 首次啟動</div><div class="col">

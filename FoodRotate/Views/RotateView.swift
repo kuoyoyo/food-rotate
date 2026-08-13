@@ -360,7 +360,9 @@ struct RotateView: View {
             .padding(.bottom, 24)
         }
         .scrollDismissesKeyboard(.interactively)
-        .background(Color(.systemGroupedBackground))
+        // S1–S4 換掉的是這一頁的內容，頁底一直是系統色 —— 深色下它是純黑，
+        // 而其他每一頁都是 `#1A1714`。主畫面跟全 App 不同底色沒有道理。
+        .background(Theme.pageBackground(for: colorScheme))
         .navigationTitle("食物轉盤")
         .navigationBarTitleDisplayMode(.inline)
         #if DEBUG
