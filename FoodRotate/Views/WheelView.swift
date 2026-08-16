@@ -18,6 +18,25 @@ final class WheelSpinner {
     private var duration: Double = 0
     private var tickTask: Task<Void, Never>?
 
+    /// 這一輪停下來要做的事。**一定要保存**，否則 `reset()` 取消不了它 ——
+    /// 那正是 P0-1：舊的那一個醒來，把新的一輪提前結束掉。
+    private var finishTask: Task<Void, Never>?
+
+    /// 「現在是第幾輪」。醒來的工作要先問這個問題才知道自己還算不算數。
+    private var runs = GenerationSource()
+
+    /// 等一段時間再回來。
+    ///
+    /// 抽成可注入的一個函式，是因為這一塊的 bug **全部是「醒來的時機」造成的** ——
+    /// 不能控制時機就寫不出會紅的測試，而寫不出會紅的測試就分不出
+    /// 「修好了」跟「剛好沒踩到」。正式執行時它就是 `Task.sleep`。
+    typealias Wait = @Sendable (Double) async -> Void
+    private let wait: Wait
+
+    init(wait: @escaping Wait = { try? await Task.sleep(for: .seconds($0)) }) {
+        self.wait = wait
+    }
+
     /// 起轉。`winner` 是要停在哪一格，先決定贏家再回推角度，
     /// 這樣浮點誤差只會影響停的位置好不好看，不會選錯格。
     func spin(segmentCount: Int, winner: Int, onFinish: @escaping () -> Void) {
