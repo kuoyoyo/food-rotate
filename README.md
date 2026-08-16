@@ -39,7 +39,6 @@ iOS App，SwiftUI 寫的。**完全離線**，50 道料理內建在 App 裡，�
 | UI | SwiftUI，轉盤是 `Canvas` 手繪 + 自訂緩動狀態機 |
 | 儲存 | SwiftData（只存轉盤紀錄）、UserDefaults（自訂料理與設定） |
 | 地圖 | MapKit |
-| 外部套件 | **零** |
 
 ---
 
