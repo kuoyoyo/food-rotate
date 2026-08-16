@@ -86,9 +86,11 @@ xcodebuild test  -scheme FoodRotate -destination 'platform=iOS Simulator,name=iP
 
 ## 目前進度
 
-視覺與體驗改版分五個階段，S1–S5A 已完成，S5B（其餘四頁套用 design token）進行中。
+**進度、已知問題與待辦一律看 [`PROJECT_STATUS.md`](PROJECT_STATUS.md)。**
 
-各階段的規格、驗收與判斷理由都留在 `Design/`、`Coder/`、`PM/` 裡。
+這裡刻意不再寫一份 —— 同一件事寫在兩個地方，過期的一定是沒人記得改的那份。
+
+各階段的規格、驗收與判斷理由留在 `Design/`、`Coder/`、`PM/` 裡。
 
 ---
 
