@@ -3,3 +3,6 @@ xcuserdata/
 *.xcuserstate
 build/
 DerivedData/
+
+# 圖示對照圖：由 Design/tools/render-icons.py 產生，跑一次就有，不進 repo
+Design/.render-out/

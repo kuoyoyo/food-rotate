@@ -181,6 +181,41 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:now
 飯食把飯山拉高。第二輪又修掉麵包餅皮與肉食（17pt 下是兩坨黑塊），
 改成楔形切角與帶骨突出物。
 </p></div>
+
+<h3 style="margin-top:2.5rem">上面每一個結論怎麼自己重跑</h3>
+<p>本頁的所有判斷都是渲染到 17pt 看出來的，但留下的只有結論 ——
+證據原本在暫存區，已經不存在了（QC 報告 P3-2）。</p>
+<p class="lead"><strong>沒有能重跑的渲染，就分不出「我驗過了」跟「我覺得可以」。</strong></p>
+<pre><code>python3 Design/tools/render-icons.py</code></pre>
+<p>產出在 <code>Design/.render-out/</code>（gitignore，<strong>腳本進 repo、圖不進</strong>）。
+色票自動讀 <code>DesignTokens.swift</code>；淺深兩套、九個並排、順序照 App 裡的標籤順序 ——
+<strong>撞形只有並排才看得出來</strong>。</p>
+
+<div class="tl"><table>
+<thead><tr><th>量測</th><th>定義</th></tr></thead><tbody>
+<tr><td>墨跡 bbox</td><td>alpha &gt; 0.5 的像素的最小外接矩形，以畫布邊長的百分比表示</td></tr>
+<tr><td><strong>面積利用率</strong></td><td><strong>= bbox 寬佔比 × 高佔比</strong>。量的是「用掉多少格子」，不是墨水多寡</td></tr>
+</tbody></table></div>
+<p>量測一律在 <strong>48pt（144px）</strong> 上做，糊不糊一律在 <strong>17pt（51px）</strong> 上看。
+<strong>兩件事不能混用同一張圖。</strong>
+定案九個的面積：飯食 65%、麵食 76%、湯的 79%、鍋物 77%、麵包餅皮 81%、
+小吃 61%、肉食 57%、輕食 75%、中性 63%。最初那批平均只有 44%，
+就是靠這個數字看出來的 ——「感覺有點小」講不清楚，「用掉 44% 的格子」講得清楚。</p>
+
+<div class="note warn" style="margin-top:1.5rem"><p>
+<strong>放大，不要重畫。</strong> 線糊在一起是<strong>點陣化當下</strong>發生的：
+兩條線距離小於一個像素，就在那一刻併成一條。所以只能先渲染到 17pt 的真實像素、
+再把那張小圖放大。直接看 144px 的圖，線永遠是分開的 ——
+你會看到一個真機上不存在的畫面，然後以為它沒問題。
+</p></div>
+
+<div class="note warn" style="margin-top:1rem"><p>
+<strong>寫這支腳本時我自己踩了一次。</strong> 第一版用 <code>qlmanage -t</code>，
+它跑得出 PNG、沒有報錯，但<strong>它不縮放 SVG</strong> —— 把 24×24 原尺寸貼在畫布左上角。
+量出來九個<strong>全是面積利用率 100%</strong>，因為量到的是畫布不是圖示。<br><br>
+<strong>一個看起來成功、其實量錯對象的驗證，比沒有驗證更危險。</strong>
+所以腳本內建自檢：肉食應為 83% × 69%、面積 57%，對不上就先懷疑渲染器，不要先改圖示。
+</p></div>
 </div></div></section>
 
 
