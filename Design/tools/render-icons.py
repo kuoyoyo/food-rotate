@@ -62,6 +62,7 @@ S2 的每一個圖示決策 —— 湯的不能是放大鏡、小吃不能是丸
 不是在點上。
 """
 
+import itertools
 import os
 import re
 import shutil
@@ -164,6 +165,29 @@ def measure(alpha_img):
     w = (box[2] - box[0]) / alpha_img.width
     h = (box[3] - box[1]) / alpha_img.height
     return w, h, w * h
+
+
+def _mask(alpha_img):
+    return alpha_img.split()[3].point(lambda v: 255 if v > 127 else 0)
+
+
+def overlap(a, b, box=None):
+    """
+    兩個圖示在 17pt 下的墨跡重疊率（IoU）。
+
+    這是**撞形的數字版**。並排圖能讓人看出「這兩個有點像」，
+    但「有點像」有多像、哪一對最像，用看的排不出順序 ——
+    PM 第一次跑並排圖時看出碗系，成員卻數錯了（見規格一-F）。
+
+    重疊率高**不一定是問題**：共用的碗代表「都是從容器裡吃的」，
+    那是真的共通點，不是雜訊。要看的是**差異的部分有沒有帶資訊**。
+    """
+    if box:
+        a, b = a.crop(box), b.crop(box)
+    A, B = list(a.get_flattened_data()), list(b.get_flattened_data())
+    inter = sum(1 for x, y in zip(A, B) if x and y)
+    union = sum(1 for x, y in zip(A, B) if x or y)
+    return inter / union if union else 0.0
 
 
 # ── 排版 ────────────────────────────────────────────────────────
@@ -295,6 +319,22 @@ def main():
         w, h, area = measure(img[(stem, 48 * SCALE)])
         print("%-9s %-14s %5.0f%% %5.0f%% %6.0f%%"
               % (stem.replace("form-", ""), lab, w * 100, h * 100, area * 100))
+
+    # 5. 撞形排行（17pt 上的墨跡重疊率）
+    masks = {s: _mask(img[(s, px17)]) for s in stems}
+    name = dict(zip(stems, labels))
+    lower = (0, px17 // 2, px17, px17)   # 下半部 = 容器所在
+    print("\n撞形排行（17pt 墨跡重疊率 IoU；下半 = 容器那一半）")
+    print("%-16s %8s %8s" % ("一對", "整體", "下半"))
+    ranked = sorted(
+        ((overlap(masks[a], masks[b]), overlap(masks[a], masks[b], lower), a, b)
+         for a, b in itertools.combinations(stems, 2)),
+        reverse=True)
+    for whole, low, a, b in ranked[:5]:
+        print("%-7s %-7s %6.0f%% %7.0f%%"
+              % (name[a], name[b], whole * 100, low * 100))
+    print("重疊率高不等於要改 —— 共用的容器是真的共通點。"
+          "要看的是差異的那一半有沒有帶資訊（見規格一-F）。")
 
     mw, mh, ma = measure(img[("form-meat", 48 * SCALE)])
     ok = (round(mw * 100), round(mh * 100), round(ma * 100)) == (83, 69, 57)

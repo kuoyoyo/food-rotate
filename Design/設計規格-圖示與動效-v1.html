@@ -216,6 +216,43 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:now
 <strong>一個看起來成功、其實量錯對象的驗證，比沒有驗證更危險。</strong>
 所以腳本內建自檢：肉食應為 83% × 69%、面積 57%，對不上就先懷疑渲染器，不要先改圖示。
 </p></div>
+
+<h3 style="margin-top:2.5rem">碗系撞形：量過了，不改</h3>
+<p>PM 第一次跑並排圖就看出<strong>有一群圖示共用碗的下半部</strong> ——
+「單獨看每一個都認得出來，我驗收五輪都是單獨看的，所以五輪都沒發現」。
+<strong>觀察是對的，成員數錯了。</strong>我用墨跡重疊率（IoU）量了 36 對：</p>
+
+<div class="tl"><table>
+<thead><tr><th>一對</th><th>整體</th><th>下半（容器那一半）</th></tr></thead><tbody>
+<tr><td><strong>飯食 ─ 湯的</strong></td><td class="num"><strong>53%</strong></td><td class="num"><strong>72%</strong></td></tr>
+<tr><td>飯食 ─ 輕食</td><td class="num">43%</td><td class="num">56%</td></tr>
+<tr><td>湯的 ─ 輕食</td><td class="num">40%</td><td class="num">50%</td></tr>
+<tr><td>飯食 ─ 鍋物</td><td class="num">32%</td><td class="num">38%</td></tr>
+<tr><td>飯食 ─ 麵食</td><td class="num">31%</td><td class="num">40%</td></tr>
+</tbody></table></div>
+
+<p><strong>緊的是三個（飯食、湯的、輕食），不是四個。</strong>
+PM 點名的鍋物落在第二梯（38%），跟他沒點名的麵食（40%）同一個 band ——
+鍋物的直壁與側把手真的把它分開了。
+<strong>「有點像」有多像、哪一對最像，用看的排不出順序</strong>，
+所以我把 IoU 加進腳本，下一個人不必再用眼睛數。</p>
+
+<p class="lead">結論：<strong>不改。共用的碗是資訊，不是雜訊。</strong></p>
+<ol>
+<li><strong>那個碗說了一件真話</strong> —— 飯食、湯的、輕食確實都是從容器裡吃的。
+共用底不是不小心長得像，是它們真的共有一個屬性。<strong>共用底 ≠ 撞形</strong>。</li>
+<li><strong>差異是結構的，不是裝飾的</strong> —— 碗緣之上的<strong>水平散點</strong>、
+從中心升起的<strong>垂直柄</strong>、<strong>斜出</strong>的葉片。
+水平／垂直／斜向是小尺寸最強的分辨軸。</li>
+<li><strong>S1a 已定案「圖示負責類型、名字負責身分」</strong> —— 它們永遠跟名字一起出現。</li>
+</ol>
+
+<div class="note warn" style="margin-top:1rem"><p>
+<strong>什麼情況下這個結論會翻掉：再加進一個以容器為底的類型。</strong>
+碗系變成四個以上，「有碗」就不再指向任何東西 ——
+<strong>底一旦成為多數，它就從資訊退化成背景。</strong>
+新增吃法標籤時先跑一次撞形排行。
+</p></div>
 </div></div></section>
 
 
