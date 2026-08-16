@@ -12,6 +12,7 @@ struct FoodEditorView: View {
     let editing: FoodItem?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @State private var store = CustomFoodStore.shared
 
     @State private var name = ""
@@ -43,6 +44,13 @@ struct FoodEditorView: View {
             }
             .navigationTitle(editing == nil ? "新增料理" : "編輯料理")
             .navigationBarTitleDisplayMode(.inline)
+            // 這一頁**不在 S5-B 規格的四頁裡**（規格寫「表單本身 S4 已完成，不動」，
+            // 指的是 `TagGrid`）。但它跟其他頁擺在一起看的時候，系統的藍灰分組色
+            // 跟這套暖色 token 明顯是兩個東西，所以這裡只做**與設定頁完全相同的一件事**：
+            // 換頁底、卡片、分組標題、footer 的顏色。欄位、`TagGrid`、儲存邏輯一個字沒動。
+            .scrollContentBackground(.hidden)
+            .background(Theme.pageBackground(for: colorScheme))
+            .tint(Theme.sauce(for: colorScheme))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") { dismiss() }
@@ -91,10 +99,23 @@ struct FoodEditorView: View {
                 if let current = FoodTag(rawValue: new) { tags.insert(current) }
             }
         } header: {
-            Text("基本資料")
+            editorHeader("基本資料")
         } footer: {
-            Text("Emoji 會顯示在轉盤的格子上。選了分類就會自動掛上對應的菜系標籤，篩選時找得到。")
+            editorFooter("Emoji 會顯示在轉盤的格子上。選了分類就會自動掛上對應的菜系標籤，篩選時找得到。")
         }
+        .listRowBackground(Theme.card(for: colorScheme))
+    }
+
+    private func editorHeader(_ text: String) -> some View {
+        Text(text)
+            .font(Theme.caption)
+            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+    }
+
+    private func editorFooter(_ text: String) -> some View {
+        Text(text)
+            .font(Theme.footnote)
+            .foregroundStyle(Theme.textSecondary(for: colorScheme))
     }
 
     /// 標籤。**跟篩選器用同一個 `TagGrid`**，不另做一套。
@@ -103,7 +124,7 @@ struct FoodEditorView: View {
     /// （一條不會被自動放寬、有後果的規則），這裡的「無牛」是**在描述這道菜不含牛**。
     /// 同一個標籤在兩個畫面語意不同，只有前者需要警示。
     private var tagsSection: some View {
-        Section("標籤") {
+        Section {
             TagGrid(
                 filter: Binding(
                     get: { FilterSelection(tags: tags) },
@@ -114,7 +135,10 @@ struct FoodEditorView: View {
                 onChange: {}
             )
             .padding(.vertical, Theme.space8)
+        } header: {
+            editorHeader("標籤")
         }
+        .listRowBackground(Theme.card(for: colorScheme))
     }
 
     private func pointsSection(title: String, footer: String, points: Binding<[String]>) -> some View {
@@ -127,10 +151,11 @@ struct FoodEditorView: View {
             }
             .disabled(points.wrappedValue.count >= 3)
         } header: {
-            Text(title)
+            editorHeader(title)
         } footer: {
-            Text(footer)
+            editorFooter(footer)
         }
+        .listRowBackground(Theme.card(for: colorScheme))
     }
 
     // MARK: 存讀
@@ -191,7 +216,9 @@ struct MyListView: View {
                 } label: {
                     // 實心主色 + `onSauce`：這是這一頁唯一的主要動作。
                     // 深色的 `onSauce` 是**深墨不是白**，白字疊在提亮後的主色上只有 3.50。
-                    Label("新增料理", systemImage: "plus.circle.fill")
+                    // `plus` 而不是 `plus.circle.fill`：實心圓套上深墨的 `onSauce`
+                    // 會變成一個深色圓塊，比字還重。
+                    Label("新增料理", systemImage: "plus")
                         .font(Theme.headline)
                         .foregroundStyle(
                             colorScheme == .dark ? Theme.Dark.onSauce : Theme.Light.onSauce
@@ -205,6 +232,8 @@ struct MyListView: View {
                 }
                 .buttonStyle(.plain)
                 .listRowBackground(Theme.card(for: colorScheme))
+                // 按鈕下面不要分隔線：它跟下面的列不是同一類東西。
+                .listRowSeparator(.hidden)
 
                 if store.customItems.isEmpty {
                     emptyNote("還沒有自己加的料理。")
@@ -306,5 +335,6 @@ struct MyListView: View {
             .padding(.vertical, Theme.space12)
             .listRowInsets(EdgeInsets())
             .listRowBackground(Theme.card(for: colorScheme))
+            .listRowSeparator(.hidden)
     }
 }

@@ -126,8 +126,9 @@ struct ResultSheet: View {
 
                 actions
 
-                CopyrightFooter()
-                    .foregroundStyle(Ink.secondary)
+                // 這一頁固定深色，所以要明講 —— 不然版權那三行會跟著系統走，
+                // 在淺色模式下變成淺色模式的文字色疊在深卡片上。
+                CopyrightFooter(fixedScheme: .dark)
             }
             .padding(.horizontal, Theme.space20)
             .padding(.bottom, Theme.space32)
