@@ -42,6 +42,11 @@ final class WheelSpinner {
     func spin(segmentCount: Int, winner: Int, onFinish: @escaping () -> Void) {
         guard segmentCount > 0, !isSpinning else { return }
 
+        // 這一輪領一個新號碼，同時把上一輪還在路上的收尾工作取消掉。
+        // 兩件事都要做：取消是「請你停下來」，號碼是「就算你沒停下來也不算數」。
+        finishTask?.cancel()
+        let run = runs.next()
+
         startAngle = restingAngle
         totalDelta = WheelGeometry.delta(
             from: restingAngle,
@@ -56,10 +61,10 @@ final class WheelSpinner {
 
         scheduleTicks(segmentCount: segmentCount)
 
-        Task { [duration] in
-            try? await Task.sleep(for: .seconds(duration))
+        finishTask = Task { [duration, wait] in
+            await wait(duration)
             guard !Task.isCancelled else { return }
-            self.finish(onFinish: onFinish)
+            self.finish(run: run, onFinish: onFinish)
         }
     }
 
@@ -75,16 +80,27 @@ final class WheelSpinner {
     func reset() {
         tickTask?.cancel()
         tickTask = nil
+        // 收尾工作也要取消，而且要讓在途的那一個作廢 —— 只把 `isSpinning`
+        // 設成 false 擋不住它：下一輪起轉之後它又會看到 true（P0-1）。
+        finishTask?.cancel()
+        finishTask = nil
+        runs.invalidate()
         isSpinning = false
         restingAngle = 0
         startAngle = 0
         totalDelta = 0
     }
 
-    private func finish(onFinish: () -> Void) {
-        guard isSpinning else { return }
+    /// 收尾。**`run` 是這件工作出發時領到的號碼。**
+    ///
+    /// 只檢查 `isSpinning` 是不夠的（P0-1）：那個旗標分不出現在轉的是哪一輪，
+    /// 於是上一輪醒來就把新的一輪結束掉，還執行了上一輪的 completion ——
+    /// 而那個 completion 記著的是**舊清單的位置**。
+    private func finish(run: Generation, onFinish: () -> Void) {
+        guard isSpinning, runs.isCurrent(run) else { return }
         restingAngle = (startAngle + totalDelta).truncatingRemainder(dividingBy: 360)
         isSpinning = false
+        finishTask = nil
         tickTask?.cancel()
         tickTask = nil
         // 停下來的成功觸覺就在這裡，中選轉場要接的也是這個時間點。
@@ -104,12 +120,12 @@ final class WheelSpinner {
         )
         guard !ticks.isEmpty else { return }
 
-        tickTask = Task {
+        tickTask = Task { [wait] in
             var previous: Double = 0
             for tick in ticks {
-                let wait = tick.time - previous
-                if wait > 0 {
-                    try? await Task.sleep(for: .seconds(wait))
+                let interval = tick.time - previous
+                if interval > 0 {
+                    await wait(interval)
                 }
                 guard !Task.isCancelled else { return }
                 Haptics.wheelTick(intensity: CGFloat(tick.intensity))

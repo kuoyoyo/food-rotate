@@ -18,6 +18,12 @@ final class RotateViewModel {
             if source == .restaurants {
                 filter.tags = filter.tags(in: .cuisine)
             }
+            // **切模式一定要把還在路上的搜尋停掉並作廢。**
+            //
+            // 以前只是把清單清空就重新載入 —— 但舊搜尋還在跑，它回來時
+            // 會把餐廳寫進「吃什麼」的清單裡（S6 P1-1）。使用者眼前是菜色模式，
+            // 轉盤上卻突然變成一排店名。
+            abandonSearch()
             allItems = []
             load()
         }
@@ -63,14 +69,17 @@ final class RotateViewModel {
     var winner: FoodItem?
     var showResult = false
 
-    let spinner = WheelSpinner()
+    let spinner: WheelSpinner
     private let settings = AppSettings.shared
     private let store = CustomFoodStore.shared
-    private let nearby = NearbySearchModel()
+    private let nearby: NearbySearchModel
     private let liveActivity = LoadingActivityController()
 
     /// `FoodItem.id` → 原本的店家，導航要用它的座標。
     private var foundPlaces: [String: NearbyPlace] = [:]
+
+    /// 「這是第幾次搜尋」。跟轉盤那一輪用的是同一個機制（見 `Generation`）。
+    private var searchRuns = GenerationSource()
 
     /// 開地圖導航到這一格代表的店。不是店就什麼都不做。
     func openInMaps(_ item: FoodItem) {
@@ -117,7 +126,11 @@ final class RotateViewModel {
 
     var canSpin: Bool { !items.isEmpty && !spinner.isSpinning && !isLoading }
 
-    init() {
+    /// `spinner` 可注入是為了測試。轉盤那一輪的 bug 全部跟「什麼時候醒來」有關，
+    /// 測試要能自己決定醒來的時機（見 `WheelSpinner.Wait`）。正式路徑用預設值。
+    init(spinner: WheelSpinner = WheelSpinner(), nearby: NearbySearchModel = NearbySearchModel()) {
+        self.spinner = spinner
+        self.nearby = nearby
         load()
     }
 
@@ -161,8 +174,26 @@ final class RotateViewModel {
     ///
     /// 這是整個 App 唯一會讓人真的等的路徑，所以 Live Activity 只接在這裡：
     /// 定位加地圖搜尋要數秒，值得讓人可以切出去做別的事。
+    /// 停掉並作廢目前這一次搜尋。切模式與重新搜尋都要先做這件事。
+    ///
+    /// 三件事缺一不可：取消工作、讓號碼作廢、收掉 Live Activity 與背景時間。
+    /// 只取消不作廢的話，已經越過最後一個檢查點的結果照樣寫得進來。
+    private func abandonSearch() {
+        searchRuns.invalidate()
+        nearby.stop()
+        liveActivity.cancel()
+        isLoading = false
+    }
+
     private func findRestaurants() {
-        guard !isLoading else { return }
+        // **不能因為「還在載入」就忽略新條件。**
+        //
+        // 以前這裡是 `guard !isLoading else { return }`：使用者在載入中改成韓式，
+        // 畫面上韓式已經選中了，但請求根本沒發出去，最後拿到的是日式的結果（S6 P1-2）。
+        // 正確的做法是取消舊的、重開一次 —— 慢一點沒關係，給錯答案不行。
+        abandonSearch()
+
+        let run = searchRuns.next()
         isLoading = true
         errorMessage = nil
         relaxedDimensions = []
@@ -185,49 +216,84 @@ final class RotateViewModel {
             estimate: estimate
         )
 
-        nearby.searchRestaurants(terms: RestaurantSearchTerms.terms(for: cuisines)) { [weak self] stage in
-            self?.apply(stage: stage, startedAt: startedAt)
-        }
+        nearby.searchRestaurants(
+            terms: RestaurantSearchTerms.terms(for: cuisines),
+            onStage: { [weak self] stage in
+                self?.apply(stage: stage, run: run)
+            },
+            onFinish: { [weak self] outcome in
+                self?.apply(outcome: outcome, run: run, startedAt: startedAt)
+            }
+        )
     }
 
     /// 階段只有一個來源：這裡設定，Live Activity 與畫面跟著更新。
     /// 分兩個地方各記一份遲早會對不起來。
-    private func apply(stage newStage: GenerationActivityAttributes.Stage, startedAt: Date) {
+    private func apply(stage newStage: GenerationActivityAttributes.Stage, run: Generation) {
+        guard isCurrentSearch(run) else { return }
         stage = newStage
-        guard !newStage.isRunning else {
-            liveActivity.update(stage: newStage)
-            return
-        }
+        if newStage.isRunning { liveActivity.update(stage: newStage) }
+    }
+
+    /// 搜尋回來了。**結果由參數帶進來，不從 `nearby.phase` 讀。**
+    ///
+    /// 從共享狀態讀等於「拿號碼牌驗完身分，再去櫃檯拿最新的那一份」——
+    /// 驗了等於沒驗，因為下一個請求可能已經把 `phase` 改掉了（S6 P1-2）。
+    private func apply(
+        outcome: NearbySearchModel.RestaurantSearchOutcome,
+        run: Generation,
+        startedAt: Date
+    ) {
+        guard isCurrentSearch(run) else { return }
 
         isLoading = false
-        liveActivity.end(stage: newStage)
         settings.recordNearbyDuration(Date.now.timeIntervalSince(startedAt))
 
-        switch nearby.phase {
-        case .results(let places):
-            didFallBackToGeneric = nearby.didFallBackToGeneric
+        switch outcome {
+        case .results(let places, let didFallBack):
+            liveActivity.end(stage: .done(count: places.count))
+            didFallBackToGeneric = didFallBack
             allItems = places.map(\.asFoodItem)
             // `asFoodItem` 裝不下座標，但導航需要它，所以另外留一份對照。
             // 用 id 對回去，因為使用者可以在卡片上改名，名字對不住。
             foundPlaces = Dictionary(uniqueKeysWithValues: places.map { ("place-\($0.id.uuidString)", $0) })
             Haptics.prepare()
         case .failed(let message):
+            liveActivity.end(stage: .failed)
             allItems = []
             errorMessage = message
-        default:
-            allItems = []
         }
+    }
+
+    /// 這個結果還算數嗎。
+    ///
+    /// 兩個條件都要成立：號碼是這一輪的，而且**現在還在「去哪吃」模式**。
+    /// 後者是給 P1-1 的第二道鎖 —— 切模式時號碼已經作廢，但兩件事分別
+    /// 表達不同的意思，寫在一起才看得懂為什麼。
+    private func isCurrentSearch(_ run: Generation) -> Bool {
+        searchRuns.isCurrent(run) && source == .restaurants
     }
 
     func spin(saveTo context: ModelContext) {
         guard canSpin else { return }
         let index = Int.random(in: 0..<items.count)
+        // **記住的是那一道菜的 id，不是它在清單裡的位置。**
+        //
+        // 位置只在「這一份清單」裡有意義。轉盤要轉 4.2 秒，這段時間清單可能已經
+        // 換過（改格數、換一組、拿掉一道），拿舊位置去讀新清單輕則抽出別道菜、
+        // 重則超出範圍崩潰（S6 P0-1）。
+        //
+        // 這是第二層防線：第一層是 `WheelSpinner` 的號碼牌，上一輪根本不會醒來執行。
+        // 兩層都要有 —— 號碼牌保護的是「哪一輪算數」，id 保護的是「算數的那一輪
+        // 講的是哪一道菜」。
+        let pickedID = items[index].id
         winner = nil
         Haptics.buttonTap()
 
         spinner.spin(segmentCount: items.count, winner: index) { [weak self] in
             guard let self else { return }
-            let picked = self.items[index]
+            // 找不到就代表清單已經不是起轉時的那一份了，這一輪的結果沒有意義。
+            guard let picked = self.items.first(where: { $0.id == pickedID }) else { return }
             self.winner = picked
             self.save(winner: picked, to: context)
 

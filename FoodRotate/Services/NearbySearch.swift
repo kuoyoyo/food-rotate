@@ -151,6 +151,34 @@ final class NearbySearchModel {
     private var serviceSession: CLServiceSession?
     private var searchTask: Task<Void, Never>?
 
+    /// 查一個搜尋詞。
+    ///
+    /// 抽成可注入的函式，是為了讓「第二個詞找不到」這種情境測得到（S6 P1-3）——
+    /// 那一條的錯誤完全發生在**多詞合併的邏輯**裡，跟真實網路無關，
+    /// 但不注入的話只能靠 MapKit 剛好回什麼，那不是測試。
+    /// 正式路徑用預設值，也就是下面那支 `searchWithMapKit`。
+    typealias TermQuery = @MainActor (_ term: String, _ location: CLLocation) async throws -> [NearbyPlace]
+    private let queryTerm: TermQuery
+
+    /// 取得位置。同樣只為了測試而可注入 —— 測試環境沒有定位權限，
+    /// 不注入的話整條搜尋路徑在第一步就停住，後面的狀態機一行都測不到。
+    /// `nil` 代表走正式路徑（`resolveLocation()`）。
+    typealias LocationProvider = @MainActor () async throws -> CLLocation
+    private let locationOverride: LocationProvider?
+
+    init(
+        queryTerm: @escaping TermQuery = NearbySearchModel.searchWithMapKit,
+        location: LocationProvider? = nil
+    ) {
+        self.queryTerm = queryTerm
+        self.locationOverride = location
+    }
+
+    private func obtainLocation() async throws -> CLLocation {
+        if let locationOverride { return try await locationOverride() }
+        return try await resolveLocation()
+    }
+
     func search(dish: String) {
         searchTask?.cancel()
         searchTask = Task { await self.run(dish: dish) }
@@ -166,10 +194,23 @@ final class NearbySearchModel {
     ///   - onStage: 真實階段回報，給 Live Activity 用。定位跟搜尋各數秒，值得告訴使用者。
     func searchRestaurants(
         terms: [String],
-        onStage: (@MainActor (GenerationActivityAttributes.Stage) -> Void)? = nil
+        onStage: (@MainActor (GenerationActivityAttributes.Stage) -> Void)? = nil,
+        onFinish: (@MainActor (RestaurantSearchOutcome) -> Void)? = nil
     ) {
         searchTask?.cancel()
-        searchTask = Task { await self.runRestaurants(terms: terms, onStage: onStage) }
+        searchTask = Task {
+            await self.runRestaurants(terms: terms, onStage: onStage, onFinish: onFinish)
+        }
+    }
+
+    /// 一次「去哪吃」搜尋的最終結果。
+    ///
+    /// **由回呼帶出去，不要讓呼叫端自己去讀 `phase`。**
+    /// `phase` 是共享狀態，下一個請求隨時可能改掉它 —— 拿號碼牌驗完身分，
+    /// 再去櫃檯拿「最新的那一份」，等於沒驗（S6 P1-2）。
+    enum RestaurantSearchOutcome: Sendable {
+        case results([NearbyPlace], didFallBackToGeneric: Bool)
+        case failed(String)
     }
 
     /// 這一輪有沒有因為一家都找不到而退回一般餐廳。
@@ -185,13 +226,14 @@ final class NearbySearchModel {
 
     private func runRestaurants(
         terms: [String],
-        onStage: (@MainActor (GenerationActivityAttributes.Stage) -> Void)?
+        onStage: (@MainActor (GenerationActivityAttributes.Stage) -> Void)?,
+        onFinish: (@MainActor (RestaurantSearchOutcome) -> Void)? = nil
     ) async {
         phase = .locating
         onStage?(.locating)
         didFallBackToGeneric = false
         do {
-            let location = try await resolveLocation()
+            let location = try await obtainLocation()
             guard !Task.isCancelled else { return }
             userCoordinate = location.coordinate
 
@@ -200,51 +242,116 @@ final class NearbySearchModel {
 
             // 每個搜尋詞各查一次再合併。一個詞代表不了一個菜系 ——
             // 「東南亞」要靠「泰式」加「越南料理」才問得出東西（見 `RestaurantSearchTerms`）。
-            var places = try await searchPlaces(terms: terms, near: location)
+            let outcome = try await searchPlaces(terms: terms, near: location)
+            var places = outcome.places
 
             // 指定了菜系卻一家都沒有，退回查一般餐廳而不是直接失敗。
             // 使用者要的是「現在去哪吃」，附近沒有日式不代表沒得吃。
             //
             // **但這件事要記下來讓畫面說出去。** 以前這裡是靜默的，違反「放寬要老實說明」。
-            if places.isEmpty, terms != [RestaurantSearchTerms.generic] {
+            //
+            // **服務端出事的時候不做 fallback。** 那時候「一家都沒有」是假象，
+            // 退回去查一般餐廳等於用一個猜的結果蓋掉一個我們其實不知道的答案。
+            if places.isEmpty, outcome.hardFailure == nil, terms != [RestaurantSearchTerms.generic] {
                 places = (try? await searchPlaces(
                     terms: [RestaurantSearchTerms.generic], near: location
-                )) ?? []
+                ).places) ?? []
                 didFallBackToGeneric = !places.isEmpty
             }
             guard !Task.isCancelled else { return }
 
-            if places.isEmpty {
-                phase = .failed("附近十五公里內找不到餐廳。可能是定位不準，或這裡的地圖資料太少。")
-                onStage?(.failed)
+            if places.isEmpty, let hardFailure = outcome.hardFailure {
+                // 一家都沒拿到，而且是服務端的問題 —— 要說「服務出事」，
+                // 不能說「附近沒有餐廳」。
+                finish(.failed(Self.describeSearchFailure(
+                    hardFailure, dish: terms.first ?? RestaurantSearchTerms.generic
+                )), onStage: onStage, onFinish: onFinish)
+            } else if places.isEmpty {
+                finish(
+                    .failed("附近十五公里內找不到餐廳。可能是定位不準，或這裡的地圖資料太少。"),
+                    onStage: onStage, onFinish: onFinish
+                )
             } else {
-                phase = .results(places)
-                onStage?(.done(count: places.count))
+                finish(
+                    .results(places, didFallBackToGeneric: didFallBackToGeneric),
+                    onStage: onStage, onFinish: onFinish
+                )
             }
         } catch is CancellationError {
+            // 取消不回報。**這一輪已經不算數了**，回報只會讓上層去處理一個
+            // 沒有人在等的結果 —— 而那正是 P1-1 的形狀。
             return
         } catch let error as LocationError {
-            phase = .failed(error.message)
-            onStage?(.failed)
+            finish(.failed(error.message), onStage: onStage, onFinish: onFinish)
         } catch {
-            phase = .failed(Self.describeSearchFailure(
+            finish(.failed(Self.describeSearchFailure(
                 error, dish: terms.first ?? RestaurantSearchTerms.generic
-            ))
+            )), onStage: onStage, onFinish: onFinish)
+        }
+    }
+
+    /// 終點只有一個。
+    ///
+    /// `phase`（給「附近的店」那一頁看的）與回呼（給轉盤那一頁用的）
+    /// **在同一個地方、用同一份資料寫出去**，兩邊不可能對不起來。
+    private func finish(
+        _ outcome: RestaurantSearchOutcome,
+        onStage: (@MainActor (GenerationActivityAttributes.Stage) -> Void)?,
+        onFinish: (@MainActor (RestaurantSearchOutcome) -> Void)?
+    ) {
+        // 已經被取消就不要再寫任何狀態 —— 包括 `phase`。
+        guard !Task.isCancelled else { return }
+
+        switch outcome {
+        case .results(let places, _):
+            phase = .results(places)
+            onStage?(.done(count: places.count))
+        case .failed(let message):
+            phase = .failed(message)
             onStage?(.failed)
         }
+        onFinish?(outcome)
     }
 
     /// 幾個搜尋詞各查一次，結果合併。
     ///
     /// 合併時用「店名 + 座標」去重，不是用 `id`：`NearbyPlace` 的 `id` 是每次建立時
     /// 新生成的 UUID，同一家店在兩個搜尋詞裡會拿到兩個不同的 id，用它去重等於沒去重。
-    private func searchPlaces(terms: [String], near location: CLLocation) async throws -> [NearbyPlace] {
+    /// 多個搜尋詞查完之後的結果。
+    struct TermSearchOutcome {
+        var places: [NearbyPlace]
+        /// 服務端的失敗（掛掉、被擋、解不開）。**「找不到店」不算在這裡。**
+        var hardFailure: (any Error)?
+    }
+
+    /// internal 而非 private：多詞合併的容錯是 P1-3 的核心，要測得到。
+    func searchPlaces(terms: [String], near location: CLLocation) async throws -> TermSearchOutcome {
         var merged: [NearbyPlace] = []
         var seen = Set<String>()
 
+        var hardFailure: (any Error)?
+
         for term in terms {
             guard !Task.isCancelled else { break }
-            for place in try await searchPlaces(dish: term, near: location) {
+
+            let found: [NearbyPlace]
+            do {
+                found = try await queryTerm(term, location)
+            } catch {
+                // **一個詞查不到，不能拖垮其他詞。**
+                //
+                // 「東南亞」查的是「泰式」＋「越南料理」。泰式找到 3 家、
+                // 越南料理拋 not-found —— 以前這裡直接 throw 出去，那 3 家跟著消失，
+                // 使用者看到的是「附近沒有東南亞料理」，而事實是有 3 家泰式（P1-3）。
+                if Self.isNotFound(error) { continue }
+
+                // 服務端的失敗是另一回事：**不能靜靜地變成「沒有店」。**
+                // 記下第一個，讓上層決定要說什麼；後面的詞照樣繼續查。
+                hardFailure = hardFailure ?? error
+                continue
+            }
+
+            for place in found {
                 let key = "\(place.name)@\(place.coordinate.latitude),\(place.coordinate.longitude)"
                 guard seen.insert(key).inserted else { continue }
                 merged.append(place)
@@ -252,7 +359,24 @@ final class NearbySearchModel {
         }
         // 合併之後順序會變成「第一個詞的全部、第二個詞的全部」，要重新照距離排，
         // 否則轉盤上前幾格會全是同一個搜尋詞來的店。
-        return merged.sorted { $0.distance < $1.distance }
+        return TermSearchOutcome(
+            places: merged.sorted { $0.distance < $1.distance },
+            hardFailure: hardFailure
+        )
+    }
+
+    /// 這個錯誤是「這裡沒有這種店」還是「地圖服務出事了」。
+    ///
+    /// **這是整段容錯唯一的分界線。** `MKLocalSearch` 兩種情況都是 throw，
+    /// 分不出來就只能二選一：把服務故障說成「沒有店」（假裝知道），
+    /// 或把「沒有店」說成故障（嚇人又不給 fallback）。兩個都不對。
+    static func isNotFound(_ error: any Error) -> Bool {
+        let nsError = error as NSError
+        guard nsError.domain == MKErrorDomain,
+              nsError.code >= 0,
+              let code = MKError.Code(rawValue: UInt(nsError.code))
+        else { return false }
+        return code == .placemarkNotFound || code == .directionsNotFound
     }
 
     func stop() {
@@ -265,12 +389,12 @@ final class NearbySearchModel {
     private func run(dish: String) async {
         phase = .locating
         do {
-            let location = try await currentLocation()
+            let location = try await obtainLocation()
             guard !Task.isCancelled else { return }
             userCoordinate = location.coordinate
 
             phase = .searching
-            let places = try await searchPlaces(dish: dish, near: location)
+            let places = try await queryTerm(dish, location)
             guard !Task.isCancelled else { return }
 
             if places.isEmpty {
@@ -390,7 +514,8 @@ final class NearbySearchModel {
 
     // MARK: - 搜尋
 
-    private func searchPlaces(dish: String, near location: CLLocation) async throws -> [NearbyPlace] {
+    /// 真的去問 MapKit。這是 `queryTerm` 的預設實作。
+    static func searchWithMapKit(dish: String, near location: CLLocation) async throws -> [NearbyPlace] {
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = dish
         request.resultTypes = .pointOfInterest

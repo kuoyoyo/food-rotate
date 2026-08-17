@@ -76,6 +76,23 @@ final class LoadingActivityController {
         }
     }
 
+    /// 使用者自己放棄了這一輪（切換模式、改條件重搜）。
+    ///
+    /// **跟 `end(stage: .failed)` 不一樣，這件事要分開。** 那個會在鎖定畫面上
+    /// 留一張寫著「失敗」的卡四秒 —— 但沒有任何事情失敗，是使用者改變主意。
+    /// 把使用者的取消說成失敗，跟把「附近沒有店」說成「服務故障」是同一種錯。
+    /// 這裡直接讓卡消失，不留終態。
+    func cancel() {
+        endBackgroundTask()
+
+        guard let id = activityID else { return }
+        activityID = nil
+
+        Task.detached {
+            await Self.activity(id: id)?.end(nil, dismissalPolicy: .immediate)
+        }
+    }
+
     /// 收掉上次留下的孤兒。App 在產生途中被強制關閉時，那張卡不會自己消失。
     nonisolated static func endStaleActivities() async {
         for activity in Activity<GenerationActivityAttributes>.activities {
