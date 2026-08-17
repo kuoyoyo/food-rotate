@@ -60,14 +60,27 @@ struct HistoryView: View {
     private var list: some View {
         List {
             ForEach(records) { record in
-                Button {
-                    Haptics.buttonTap()
-                    onRestore(record)
-                } label: {
+                // 能還原的才做成按鈕。
+                //
+                // 餐廳紀錄沒有「還原」這個概念（存下來的店家資料會過期），
+                // 舊的、解不開的紀錄還原出來是空清單 —— 兩種都不該有按鈕，
+                // **也不該有一顆按了沒反應的按鈕**。那正是我們拿掉死按鈕的理由。
+                if record.canRestore {
+                    Button {
+                        Haptics.buttonTap()
+                        onRestore(record)
+                    } label: {
+                        row(record)
+                    }
+                    .buttonStyle(.plain)
+                    .dishListRowStyle(for: colorScheme)
+                } else {
+                    // **不加任何其他視覺差別**：不淡化、不加鎖、不改字色。
+                    // 有沒有還原圖示本身就是差別，再淡化是在同一件事上講第二次；
+                    // 而且淡化在這套系統裡代表「停用」，但這一列沒有壞也沒有失效。
                     row(record)
+                        .dishListRowStyle(for: colorScheme)
                 }
-                .buttonStyle(.plain)
-                .dishListRowStyle(for: colorScheme)
             }
             .onDelete(perform: delete)
         }
@@ -91,11 +104,13 @@ struct HistoryView: View {
                     .font(Theme.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-                // 保留這個符號：它是「點這一列會還原」的唯一提示。
-                // 規格的列表沒有列到它，但拿掉是減少一個功能的提示，不是套色。
-                Image(systemName: "arrow.counterclockwise")
-                    .font(Theme.caption)
-                    .foregroundStyle(Theme.sauce(for: colorScheme))
+                // 這個符號是「點這一列會還原」的唯一提示，所以**只有真的能還原時才出現**。
+                // 沒有那個資訊就不畫那個位置 —— 跟 S5-B「無菜系標籤時不顯示角標」同一條原則。
+                if record.canRestore {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(Theme.caption)
+                        .foregroundStyle(Theme.sauce(for: colorScheme))
+                }
             }
         }
     }

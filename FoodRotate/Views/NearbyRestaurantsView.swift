@@ -1,6 +1,50 @@
 import MapKit
 import SwiftUI
 
+/// 地圖視窗要框住哪一塊。
+/// **視窗要框住所有結果，不是一個固定的圈。**
+///
+/// 以前永遠是 2,500 公尺見方，但搜尋接受的是使用者選的上限（最遠 10 公里）——
+/// 超出那一圈的店，圖釘落在畫面外：清單上看得到、地圖上找不到（S6 P2-2）。
+enum NearbyMapCamera {
+    /// 視窗最小邊長。店都很近的時候不要貼到圖釘上，那樣看不出位置關係。
+    static let minimumSpan: CLLocationDistance = 900
+    /// 邊緣留白。圖釘剛好貼在框線上會被地圖控制項蓋掉。
+    static let padding = 1.35
+
+    static func region(
+        around user: CLLocationCoordinate2D,
+        covering places: [NearbyPlace]
+    ) -> MKCoordinateRegion {
+        // 使用者自己也要在框裡 —— 不然「附近」這兩個字沒有參照點。
+        let latitudes = [user.latitude] + places.map(\.coordinate.latitude)
+        let longitudes = [user.longitude] + places.map(\.coordinate.longitude)
+
+        let minLatitude = latitudes.min() ?? user.latitude
+        let maxLatitude = latitudes.max() ?? user.latitude
+        let minLongitude = longitudes.min() ?? user.longitude
+        let maxLongitude = longitudes.max() ?? user.longitude
+
+        let center = CLLocationCoordinate2D(
+            latitude: (minLatitude + maxLatitude) / 2,
+            longitude: (minLongitude + maxLongitude) / 2
+        )
+
+        let metersPerDegreeLatitude = 111_000.0
+        // 經度一度的距離隨緯度收縮，高緯度不修正的話東西向會框得太寬。
+        let metersPerDegreeLongitude = metersPerDegreeLatitude * cos(center.latitude * .pi / 180)
+
+        let latitudeMeters = (maxLatitude - minLatitude) * metersPerDegreeLatitude * padding
+        let longitudeMeters = (maxLongitude - minLongitude) * metersPerDegreeLongitude * padding
+
+        return MKCoordinateRegion(
+            center: center,
+            latitudinalMeters: max(latitudeMeters, minimumSpan),
+            longitudinalMeters: max(longitudeMeters, minimumSpan)
+        )
+    }
+}
+
 /// 找附近有沒有賣這道菜的店。地圖與清單並陳，點清單可以直接開 Apple 地圖導航。
 ///
 /// **只套色，不改版面。** 這一頁的主體是 `Map`，那是系統元件，我們控制不了也不該控制；
@@ -100,6 +144,11 @@ struct NearbyRestaurantsView: View {
         .background(Ink.page)
     }
 
+    private func focus(on places: [NearbyPlace]) {
+        guard let coordinate = model.userCoordinate else { return }
+        camera = .region(NearbyMapCamera.region(around: coordinate, covering: places))
+    }
+
     private func content(_ places: [NearbyPlace]) -> some View {
         VStack(spacing: 0) {
             Map(position: $camera) {
@@ -159,15 +208,9 @@ struct NearbyRestaurantsView: View {
             .scrollContentBackground(.hidden)
             .background(Ink.card)
         }
-        .onAppear {
-            guard let coordinate = model.userCoordinate else { return }
-            camera = .region(
-                MKCoordinateRegion(
-                    center: coordinate,
-                    latitudinalMeters: 2500,
-                    longitudinalMeters: 2500
-                )
-            )
-        }
+        .onAppear { focus(on: places) }
+        // **結果換了視窗也要跟著換。** 只靠 `onAppear` 的話，重搜之後
+        // 框的還是上一批店的範圍。
+        .onChange(of: places.map(\.id)) { _, _ in focus(on: places) }
     }
 }

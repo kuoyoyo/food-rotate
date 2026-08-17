@@ -364,7 +364,9 @@ final class RotateViewModel {
             date: .now,
             prompt: filter.summary,
             items: items,
-            winnerName: winner.name
+            winner: winner,
+            // 存下模式，歷史頁才判斷得出這一列能不能還原（P1-4）。
+            source: source
         )
         context.insert(record)
         try? context.save()
@@ -409,7 +411,7 @@ struct RotateView: View {
                 if !model.items.isEmpty {
                     FoodCardList(
                         items: model.items,
-                        winnerName: model.winner?.name,
+                        winnerID: model.winner?.id,
                         onRename: { model.rename($0, to: $1) },
                         onDelete: { model.remove($0) },
                         onExcludeForever: { model.excludeForever($0) },

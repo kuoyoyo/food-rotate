@@ -268,7 +268,7 @@ final class NearbySearchModel {
                 )), onStage: onStage, onFinish: onFinish)
             } else if places.isEmpty {
                 finish(
-                    .failed("附近十五公里內找不到餐廳。可能是定位不準，或這裡的地圖資料太少。"),
+                    .failed(Self.noRestaurantsMessage()),
                     onStage: onStage, onFinish: onFinish
                 )
             } else {
@@ -370,6 +370,21 @@ final class NearbySearchModel {
     /// **這是整段容錯唯一的分界線。** `MKLocalSearch` 兩種情況都是 throw，
     /// 分不出來就只能二選一：把服務故障說成「沒有店」（假裝知道），
     /// 或把「沒有店」說成故障（嚇人又不給 fallback）。兩個都不對。
+    /// 「附近沒有餐廳」的說法。
+    ///
+    /// **距離只有一個來源：使用者選的上限。** 這兩句以前寫死「十五公里」，
+    /// 而實際上限早就改成可調（1／3／5／10，預設 5）——
+    /// 同一個檔案的註解自己寫著「一度寫死十五公里，但那對『現在要去吃飯』來說太遠了」，
+    /// **決定改了，文案沒跟著改**。選 1 公里卻被告知「十五公里內都沒有」，
+    /// 那是在講一個不是事實的數字。
+    static func noRestaurantsMessage(radius: Double = maxDistance) -> String {
+        "附近 \(SearchRadius.label(radius)) 內找不到餐廳。可能是定位不準，或這裡的地圖資料太少。"
+    }
+
+    static func noPlacesSellingMessage(dish: String, radius: Double = maxDistance) -> String {
+        "\(SearchRadius.label(radius)) 內找不到賣「\(dish)」的店。可以換個更常見的說法，例如把「豬肉親子丼」改成「親子丼」或「日式定食」。"
+    }
+
     static func isNotFound(_ error: any Error) -> Bool {
         let nsError = error as NSError
         guard nsError.domain == MKErrorDomain,
@@ -398,7 +413,7 @@ final class NearbySearchModel {
             guard !Task.isCancelled else { return }
 
             if places.isEmpty {
-                phase = .failed("十五公里內找不到賣「\(dish)」的店。可以換個更常見的說法，例如把「豬肉親子丼」改成「親子丼」或「日式定食」。")
+                phase = .failed(Self.noPlacesSellingMessage(dish: dish))
             } else {
                 phase = .results(places)
             }
@@ -556,7 +571,7 @@ final class NearbySearchModel {
     ///
     /// 一度寫死十五公里，但那對「現在要去吃飯」來說太遠了——
     /// 開車半小時的店不會是今天午餐的選項。改成可調之後預設五公里。
-    private static var maxDistance: CLLocationDistance {
+    static var maxDistance: CLLocationDistance {
         AppSettings.shared.searchRadius
     }
 

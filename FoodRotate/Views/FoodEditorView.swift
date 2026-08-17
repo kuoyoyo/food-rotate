@@ -189,9 +189,9 @@ struct FoodEditorView: View {
         if editing == nil {
             store.add(item)
         } else {
-            // 先清掉改名覆寫再存。這道菜可能在轉盤上被改過名字，
-            // 那筆覆寫會蓋在這裡存的新名字上面，畫面看起來就像沒改到。
-            store.rename(id: item.id, to: item.name)
+            // 直接寫回整筆就好。自訂料理的名字只有一個來源（`customItems` 本身），
+            // 不需要再去清什麼覆寫 —— 以前那個「先 rename 再 update」反而會
+            // 留下一筆指向新名的孤兒覆寫（S6 P2-3）。
             store.update(item)
         }
         Haptics.buttonTap()

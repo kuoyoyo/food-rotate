@@ -10,7 +10,9 @@ import SwiftUI
 /// 視覺上也才像「一份清單」而不是「一疊各自獨立的東西」。
 struct FoodCardList: View {
     let items: [FoodItem]
-    let winnerName: String?
+    /// 中選那一道的 `id`。**用 id 不用名字**：名字使用者改得掉，
+    /// 而且自訂與內建可能同名，那時候會有兩列同時被標成中選（S6 P2-4）。
+    let winnerID: String?
     let onRename: (FoodItem, String) -> Void
     /// 這一輪不要。下次抽還是抽得到。
     let onDelete: (FoodItem) -> Void
@@ -58,7 +60,7 @@ struct FoodCardList: View {
                     }
                     FoodRow(
                         item: item,
-                        isWinner: item.name == winnerName,
+                        isWinner: item.id == winnerID,
                         canDelete: items.count > 2,
                         onRename: { onRename(item, $0) },
                         onDelete: { onDelete(item) },

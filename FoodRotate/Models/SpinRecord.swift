@@ -13,6 +13,18 @@ final class SpinRecord {
     var itemsJSON: String = ""
     var winnerName: String = ""
 
+    /// 這一輪轉的是菜色還是店家。**空字串代表舊紀錄**（S6 之前存的都沒有這一欄）。
+    ///
+    /// 沒有它連「這一列要不要顯示還原」都判斷不了 —— 而顯示了卻按不動，
+    /// 就是一顆死按鈕。
+    var sourceRawValue: String = ""
+
+    /// 中選那一道的 `id`。**空字串代表舊紀錄。**
+    ///
+    /// 以前只存名字，但名字是會變的：使用者可以在轉盤上改名，
+    /// 兩道菜也可能同名（自訂的跟內建的）。名字是拿來顯示的，id 才是身分（P2-4）。
+    var winnerID: String = ""
+
     /// 已經不再寫入，但欄位要留著。
     ///
     /// 這是舊版存「用了哪個模型引擎」的地方。SwiftData 的 store 已經有這一欄，
@@ -24,6 +36,41 @@ final class SpinRecord {
         self.prompt = prompt
         self.itemsJSON = Self.encode(items)
         self.winnerName = winnerName
+    }
+
+    convenience init(
+        date: Date, prompt: String, items: [FoodItem],
+        winner: FoodItem, source: WheelSource
+    ) {
+        self.init(date: date, prompt: prompt, items: items, winnerName: winner.name)
+        self.winnerID = winner.id
+        self.sourceRawValue = source.rawValue
+    }
+
+    /// 這一輪轉的是什麼。舊紀錄沒有這一欄，**用內容推**：
+    /// 店家的 id 一律是 `place-` 前綴（見 `FoodItem.isPlace`）。
+    ///
+    /// 這就是 SwiftData 那邊不需要 migration plan 的原因 —— 新欄位有預設值，
+    /// 舊資料照樣讀得出來，缺的部分由這裡降級補上。
+    var resolvedSource: WheelSource {
+        if let stored = WheelSource(rawValue: sourceRawValue) { return stored }
+        return items.contains(where: \.isPlace) ? .restaurants : .dishes
+    }
+
+    /// 這一筆能不能還原回轉盤。
+    ///
+    /// 兩個條件：
+    ///
+    /// 1. **必須是菜色紀錄。** 存下來的店家資料會過期（店會關、電話會換），
+    ///    把三個月前的清單「還原」出來是另一種假裝知道。
+    /// 2. **清單必須解得開。** 舊版存的 JSON 少了欄位會整個解不開，
+    ///    那時候還原出來是一份空清單 —— 那也是一顆死按鈕。
+    ///
+    /// 不能做的事就不要出現在畫面上：`canRestore == false` 的那一列**不顯示還原圖示**，
+    /// 而且不加任何其他視覺差別（不淡化、不加鎖）—— 淡化在這套系統裡代表
+    /// 「停用」，但餐廳紀錄沒有壞也沒有失效，它本來就沒有「還原」這個概念。
+    var canRestore: Bool {
+        resolvedSource == .dishes && !items.isEmpty
     }
 
     /// 還原這一輪的候選清單。
@@ -39,8 +86,15 @@ final class SpinRecord {
         return decoded
     }
 
+    /// 中選的那一道。**先用 id 認，認不到才降級用名字。**
+    ///
+    /// 名字只能拿來顯示：使用者改得掉，而且兩道同名時分不出是哪一道。
+    /// 降級那條路只服務 S6 之前存的舊紀錄。
     var winner: FoodItem? {
-        items.first { $0.name == winnerName }
+        if !winnerID.isEmpty, let byID = items.first(where: { $0.id == winnerID }) {
+            return byID
+        }
+        return items.first { $0.name == winnerName }
     }
 
     private static func encode(_ items: [FoodItem]) -> String {
