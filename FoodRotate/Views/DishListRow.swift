@@ -26,10 +26,19 @@ struct DishListRow<Trailing: View>: View {
 
     @Environment(\.colorScheme) private var colorScheme
 
+    // 這兩個是**純幾何數字**，跟畫面狀態無關，所以標 `nonisolated`。
+    //
+    // `View` 是 `@MainActor`，型別裡的 static 屬性會跟著繼承那個隔離；
+    // 但 `alignmentGuide` 的 closure 是 `@Sendable`（版面計算不保證在主執行緒），
+    // 於是「從 Sendable closure 讀 main actor 屬性」變成警告。
+    // 真正的答案不是把 closure 搬到主執行緒，是**這兩個常數本來就不需要主執行緒**。
+    //
+    // 之所以是 computed 而不是 `static let`：泛型型別不能有 static 儲存屬性。
+
     /// emoji 佔的寬度。分隔線的縮排要對齊它的右緣，所以是一個具名常數。
-    static var emojiWidth: CGFloat { 32 }
+    nonisolated static var emojiWidth: CGFloat { 32 }
     /// 分隔線該縮排多少 —— 左內距 + emoji + 兩者之間的間隔。
-    static var separatorInset: CGFloat { Theme.space12 + emojiWidth + Theme.space12 }
+    nonisolated static var separatorInset: CGFloat { Theme.space12 + emojiWidth + Theme.space12 }
 
     init(
         emoji: String,
