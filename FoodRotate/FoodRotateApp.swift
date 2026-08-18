@@ -7,14 +7,10 @@ import SwiftUI
 @main
 struct FoodRotateApp: App {
     /// 歷史紀錄壞掉時不應該讓整個 App 開不起來，所以退回記憶體內的 container。
-    private let container: ModelContainer = {
-        do {
-            return try ModelContainer(for: SpinRecord.self)
-        } catch {
-            let fallback = ModelConfiguration(isStoredInMemoryOnly: true)
-            return try! ModelContainer(for: SpinRecord.self, configurations: fallback)
-        }
-    }()
+    ///
+    /// **但退回這件事要講出來** —— 見 `HistoryStorage`。
+    /// 以前這裡的 `catch` 是完全靜默的，使用者以為存了、重啟才發現不見了。
+    private let container: ModelContainer = HistoryStorage.makeContainer()
 
     var body: some Scene {
         WindowGroup {

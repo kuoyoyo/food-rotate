@@ -113,3 +113,60 @@ struct CustomFoodStoreRenameTests {
         )
     }
 }
+
+/// 重啟之後改動還在（S6 P3-1 的「UserDefaults 重啟一致」）。
+///
+/// 這一組刻意**建第二個 store 讀同一個網域** —— 那就是「重新開 App」的等價物。
+/// 前面那些測試只驗了記憶體裡的狀態，但使用者感受到的是「關掉再開還在不在」。
+@Suite("改動要活過重啟", .serialized)
+@MainActor
+struct CustomFoodStorePersistenceTests {
+
+    private static func suite() -> UserDefaults {
+        UserDefaults(suiteName: "test.persist.\(UUID().uuidString)")!
+    }
+
+    @Test("自訂料理、改名、排除三種改動都活過重啟")
+    func 三種改動都存得住() {
+        let defaults = Self.suite()
+        let builtIn = FoodLibrary.all[0]
+
+        do {
+            let store = CustomFoodStore(defaults: defaults)
+            store.add(FoodItem(
+                id: "", name: "阿婆麵線", emoji: "🍜", category: "自訂",
+                tags: [], pros: [], cons: []
+            ))
+            store.rename(id: store.customItems[0].id, to: "巷口麵線")
+            store.rename(id: builtIn.id, to: "我家的\(builtIn.name)")
+            store.exclude(FoodLibrary.all[1])
+        }
+
+        // 重新開 App。
+        let reopened = CustomFoodStore(defaults: defaults)
+
+        #expect(reopened.customItems.map(\.name) == ["巷口麵線"], "自訂料理的新名字要存得住")
+        #expect(reopened.renamedNames[builtIn.id] == "我家的\(builtIn.name)")
+        #expect(reopened.excludedIDs.contains(FoodLibrary.all[1].id))
+        #expect(reopened.pool.contains { $0.name == "巷口麵線" })
+    }
+
+    @Test("還原成預設之後，重啟也回不來")
+    func 還原成預設之後真的清掉了() {
+        let defaults = Self.suite()
+
+        do {
+            let store = CustomFoodStore(defaults: defaults)
+            store.add(FoodItem(
+                id: "", name: "阿婆麵線", emoji: "🍜", category: "自訂",
+                tags: [], pros: [], cons: []
+            ))
+            store.resetAll()
+        }
+
+        let reopened = CustomFoodStore(defaults: defaults)
+
+        #expect(reopened.customItems.isEmpty)
+        #expect(reopened.customizationCount == 0)
+    }
+}

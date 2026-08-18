@@ -369,7 +369,8 @@ final class RotateViewModel {
             source: source
         )
         context.insert(record)
-        try? context.save()
+        // 走 `HistoryStorage` 而不是 `try?`：寫入失敗要有人知道（S6 P2-5）。
+        HistoryStorage.shared.save(context)
     }
 }
 

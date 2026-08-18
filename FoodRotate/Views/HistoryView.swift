@@ -10,13 +10,26 @@ struct HistoryView: View {
     let onRestore: (SpinRecord) -> Void
 
     @Environment(\.colorScheme) private var colorScheme
+    @State private var storage = HistoryStorage.shared
 
     var body: some View {
         Group {
             if records.isEmpty {
                 empty
             } else {
-                list
+                VStack(spacing: 0) {
+                    // 保存壞掉的時候在這裡說一句。
+                    //
+                    // **非阻擋**：不是彈窗、不擋操作、正常時完全不佔位。
+                    // 放在歷史頁而不是全 App，因為後果只發生在這裡 ——
+                    // 提示要出現在使用者會受影響的地方，不是最顯眼的地方。
+                    if let notice = storage.notice {
+                        InfoNotice(symbol: "exclamationmark.triangle", text: notice)
+                            .padding(.horizontal, Theme.space16)
+                            .background(Theme.pageBackground(for: colorScheme))
+                    }
+                    list
+                }
             }
         }
         .navigationTitle("歷史")
@@ -119,13 +132,13 @@ struct HistoryView: View {
         for index in offsets {
             modelContext.delete(records[index])
         }
-        try? modelContext.save()
+        HistoryStorage.shared.save(modelContext)
     }
 
     private func deleteAll() {
         for record in records {
             modelContext.delete(record)
         }
-        try? modelContext.save()
+        HistoryStorage.shared.save(modelContext)
     }
 }
