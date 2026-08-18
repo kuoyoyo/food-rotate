@@ -60,8 +60,8 @@
 
 | 項目 | |
 |---|---|
+| `DishListRow<EmptyView>.separatorInset` 這個讀法彆扭 | 為了讀一個常數要隨便填泛型參數。搬進 `nonisolated enum DishListRowMetrics` 會乾淨，但那是改結構不是清警告 |
 | 歷史頁**空的時候**不顯示降級提示 | 提示在 `records.isEmpty` 的 `else` 分支裡。空清單時沒有東西會失去，所以不新增損失視窗，但不一致 |
-| `DishListRow.swift:109` 編譯警告 | `separatorInset` 不能從 Sendable closure 引用。S4 就在了，不是 S6 帶進來的 |
 | 「肉食」圖示在 24pt 下辨識偏弱 | kuoyo 已拍板接受 v5 |
 | Widget 拿不到 token | Widget 目前沒用到色票，要搬 `Shared/` 會動 pbxproj |
 | `FoodEditorView` 的 `ForEach(points.indices)` | 現況沒有刪除功能所以不會錯位，加了就會 |
