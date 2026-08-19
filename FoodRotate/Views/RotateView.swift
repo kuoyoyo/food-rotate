@@ -108,7 +108,15 @@ final class RotateViewModel {
             winner = nil
             spinner.reset()
             // 補格：從 8 格加到 12 格時，上一輪只抽了 8 道，要再抽一次才填得滿。
-            if allItems.count < newValue { pick() }
+            //
+            // **只有「吃什麼」模式補得了格。** 這裡以前是無條件 `pick()`，
+            // 於是在「去哪吃」模式下把格數調大 —— 附近只找到 5 家、格數調到 8 ——
+            // 轉盤上會突然冒出 8 道菜，而切換器還停在「去哪吃」。
+            //
+            // 店家模式下「湊不滿」是事實，不是可以再抽一次修正的東西：
+            // 附近有幾家就是幾家。那件事由 `isShortOfSlots` 老實說出來。
+            // 也**不能改成 `load()`** —— 那會變成每調一次格數就重新定位加搜尋一次。
+            if source == .dishes, allItems.count < newValue { pick() }
             Haptics.buttonTap()
         }
     }
@@ -146,7 +154,7 @@ final class RotateViewModel {
     ///
     /// 同步且不會 throw —— 資料在 bundle 裡，沒有網路、沒有模型、沒有等待。
     private func pick() {
-        errorMessage = nil
+        clearNotices()
         isLoading = false
         let previous = Set(allItems.map(\.id))
         let result = FoodPicker.pick(
@@ -170,10 +178,26 @@ final class RotateViewModel {
         spinner.reset()
     }
 
-    /// 找一批附近的店填進轉盤。
+    /// 把「上一輪講了什麼」全部歸零。
     ///
-    /// 這是整個 App 唯一會讓人真的等的路徑，所以 Live Activity 只接在這裡：
-    /// 定位加地圖搜尋要數秒，值得讓人可以切出去做別的事。
+    /// **每一條填新候選的路徑都要先走這裡。** 這五個欄位是畫面上那條提示鏈的全部來源
+    /// （`statusArea`），少清一個的後果不是少一句話，而是**多一句不是事實的話**。
+    ///
+    /// 這個方法存在的理由就是一個實際的缺陷：`didFallBackToGeneric` 與 `searchedCuisines`
+    /// 原本只在 `findRestaurants()` 裡歸零，`pick()` 沒有碰它們 —— 於是
+    /// 「附近沒有『歐陸』的店，改列一般餐廳」會跟著使用者一起走進「吃什麼」模式。
+    /// 而它在提示鏈裡排在放寬提示**前面**，殘留等於把「已放寬 菜系」整句蓋掉，
+    /// 那是產品規則第三條（放寬要老實說明）失效。
+    ///
+    /// 所以歸零只能有一個地方：以後再加第六個提示欄位時，加在這裡就三條路都清得到。
+    private func clearNotices() {
+        errorMessage = nil
+        relaxedDimensions = []
+        isOverConstrained = false
+        didFallBackToGeneric = false
+        searchedCuisines = []
+    }
+
     /// 停掉並作廢目前這一次搜尋。切模式與重新搜尋都要先做這件事。
     ///
     /// 三件事缺一不可：取消工作、讓號碼作廢、收掉 Live Activity 與背景時間。
@@ -185,6 +209,10 @@ final class RotateViewModel {
         isLoading = false
     }
 
+    /// 找一批附近的店填進轉盤。
+    ///
+    /// 這是整個 App 唯一會讓人真的等的路徑，所以 Live Activity 只接在這裡：
+    /// 定位加地圖搜尋要數秒，值得讓人可以切出去做別的事。
     private func findRestaurants() {
         // **不能因為「還在載入」就忽略新條件。**
         //
@@ -195,17 +223,15 @@ final class RotateViewModel {
 
         let run = searchRuns.next()
         isLoading = true
-        errorMessage = nil
-        relaxedDimensions = []
-        isOverConstrained = false
+        clearNotices()
         winner = nil
         spinner.reset()
 
         // 菜系在這個模式下只是**搜尋詞**，不是分類條件。翻譯規則與理由見
         // `RestaurantSearchTerms`——那張表不是分類邏輯，別當成分類邏輯改。
         let cuisines = filter.tags(in: .cuisine)
+        // `clearNotices()` 剛把它清成空的，這裡填的是**這一輪**搜的是哪幾個菜系。
         searchedCuisines = cuisines
-        didFallBackToGeneric = false
 
         let estimate = settings.estimatedNearbyDuration
         let startedAt = Date.now
@@ -352,9 +378,19 @@ final class RotateViewModel {
     func restore(_ record: SpinRecord) {
         let restored = record.items
         guard !restored.isEmpty else { return }
+
+        // **先切模式，再放清單。順序不能倒過來。**
+        //
+        // `source` 的 `didSet` 會 `abandonSearch()`、清空 `allItems` 再 `load()`——
+        // 先放清單的話，那個 `didSet` 會立刻把剛還原的東西沖掉。
+        //
+        // 而模式一定要切：`canRestore` 保證還原的是一組菜色（店家資料會過期，不還原），
+        // 所以還原之後使用者就在菜色清單上了。留在「去哪吃」會有三個後果 ——
+        // 切換器指著錯的地方、上一輪的「找不到附近的店」還壓在盤上、
+        // 而且只要動一個標籤，`onChange` 就會把他丟回去重新搜店，還原的清單當場消失。
+        source = .dishes
+        clearNotices()
         allItems = restored
-        relaxedDimensions = []
-        isOverConstrained = false
         winner = nil
         spinner.reset()
     }
