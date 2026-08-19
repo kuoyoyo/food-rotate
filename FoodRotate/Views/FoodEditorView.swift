@@ -247,9 +247,9 @@ struct MyListView: View {
                         .buttonStyle(.plain)
                         .dishListRowStyle(for: colorScheme)
                     }
-                    .onDelete { offsets in
-                        for index in offsets { store.exclude(store.customItems[index]) }
-                    }
+                    // 刪除的做法在 store 身上（`exclude(atOffsets:)`）——
+                    // 邊走 index 邊刪會刪錯人，選到最後一個直接越界。
+                    .onDelete { store.exclude(atOffsets: $0) }
                 }
             } header: {
                 sectionHeader("我加的料理")

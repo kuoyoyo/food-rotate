@@ -21,6 +21,9 @@ struct FilterBar: View {
     let searchesByKeyword: Bool
     /// 「去哪吃」才有的距離上限。nil 代表現在是「吃什麼」模式，不顯示。
     let radius: Binding<Double>?
+    /// 轉盤正在轉。轉動中不給改格數 —— 停止角度已經照現在的格數算好了，
+    /// 中途換掉會讓指針停的那一格跟結果不是同一格。
+    let isSpinning: Bool
     /// 標籤改變時呼叫。抽樣是瞬間的，所以點下去就重抽，不用等按鈕。
     let onChange: () -> Void
     /// 同樣條件換一組。
@@ -178,6 +181,7 @@ struct FilterBar: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            .disabled(isSpinning)
         }
     }
 }

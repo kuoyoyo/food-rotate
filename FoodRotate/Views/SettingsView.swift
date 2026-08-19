@@ -1,6 +1,13 @@
 import SwiftUI
 
 struct SettingsView: View {
+    /// 設定頁只跟轉盤借一件事：**改格數**。
+    ///
+    /// 收下整個 view model 而不是一個 `Binding<Int>`，是因為「轉動中不給改」
+    /// 也要讀得到 `spinner.isSpinning` —— 兩件事來自同一個真相，
+    /// 拆成兩個參數就會有一天只更新其中一個。
+    @Bindable var rotate: RotateViewModel
+
     @State private var settings = AppSettings.shared
     @State private var store = CustomFoodStore.shared
 
@@ -41,16 +48,25 @@ struct SettingsView: View {
 
     private var wheelSection: some View {
         Section {
-            Picker("轉盤格數", selection: $settings.wheelSlots) {
+            // **綁 `rotate.wheelSlots`，不是 `settings.wheelSlots`。**
+            // 直接綁設定會繞過清 winner、reset 轉盤與補格（見 `AppSettings.wheelSlots`）。
+            Picker("轉盤格數", selection: $rotate.wheelSlots) {
                 ForEach(WheelCapacity.allowedSlots, id: \.self) { count in
                     Text("\(count) 格").tag(count)
                 }
             }
             .font(Theme.body)
+            // 轉動中不給改：轉盤已經照著現在的格數在算停止角度了，
+            // 中途換掉會讓指針停的那一格跟結果不是同一格。
+            .disabled(rotate.spinner.isSpinning)
         } header: {
             header("轉盤")
         } footer: {
-            footer("格數多一點選擇多，少一點比較好決定。轉盤畫面上也可以直接改。")
+            footer(
+                rotate.spinner.isSpinning
+                    ? "轉盤正在轉，等它停下來才能改格數。"
+                    : "格數多一點選擇多，少一點比較好決定。轉盤畫面上也可以直接改。"
+            )
         }
         .listRowBackground(Theme.card(for: colorScheme))
     }

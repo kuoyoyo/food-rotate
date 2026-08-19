@@ -77,7 +77,9 @@ struct RootView: View {
 
             Tab("設定", systemImage: "gearshape.fill", value: AppTab.settings) {
                 NavigationStack {
-                    SettingsView()
+                    // 設定頁的「轉盤格數」要走 `RotateViewModel` 那條唯一入口，
+                    // 所以它需要拿到同一個 model（見 `AppSettings.wheelSlots`）。
+                    SettingsView(rotate: rotateModel)
                 }
             }
         }

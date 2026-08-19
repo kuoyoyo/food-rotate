@@ -46,8 +46,12 @@ final class RotateViewModel {
     /// 為了湊滿格數放寬掉的維度，UI 用它老實說明。空的代表條件本來就夠用。
     private(set) var relaxedDimensions: [FoodTag.Dimension] = []
 
-    /// 忌口條件把候選篩光了。這時候不放寬也不硬給，直接請使用者調整。
-    private(set) var isOverConstrained = false
+    /// 一道都抽不到的時候是哪一種空。`nil` 代表抽得到。
+    ///
+    /// **兩種空要分開**（見 `PickResult.EmptyReason`）：忌口篩光了的出口是取消忌口，
+    /// 候選池空掉的出口在設定頁的「我的清單」。以前兩種都說成前者，
+    /// 而把料理全部排除掉的那個人可能一個忌口都沒選 —— 那句話對他是錯的。
+    private(set) var emptyReason: PickResult.EmptyReason?
 
     /// 「去哪吃」這一輪找不到指定菜系的店，退回了一般餐廳。
     ///
@@ -98,7 +102,22 @@ final class RotateViewModel {
         foundPlaces[item.id]?.phoneNumber
     }
 
-    /// 轉盤格數。改了不必重抽，直接從既有候選裡多取或少取。
+    /// 轉盤格數。**改格數的唯一入口 —— 轉盤頁與設定頁都走這裡。**
+    ///
+    /// 設定頁以前直接綁 `AppSettings.wheelSlots`，繞過下面這三件事：
+    /// 清 winner、reset 轉盤、不夠就補格。後果是從設定頁改完之後，
+    /// 轉盤不補格（8→12 仍是 8 格），狀態列還會跳出「只湊得出 8 格，
+    /// 可以少選條件或調低格數」—— **條件根本沒問題，那句話是假的**。
+    ///
+    /// 所以 `AppSettings.wheelSlots` 只負責存，**不要再綁到任何 UI 上**。
+    ///
+    /// ## 這裡刻意**不**擋「轉動中」
+    ///
+    /// 擋在 UI（兩個 Picker 都 `.disabled`），不擋在這個 setter 裡。
+    /// 理由是 `WheelSpinnerRaceTests` 的五十次快速操作**正是靠這條路**
+    /// 在轉動中把盤從 12 格縮到 4 格，藉此重現 S6 P0-1。
+    /// 在這裡加 `guard !spinner.isSpinning` 會讓那支測試變成一支什麼都沒做的綠燈 ——
+    /// 換句話說，擋在這裡等於拆掉 P0-1 的回歸防線去換一個 UI 層就能給的保護。
     var wheelSlots: Int {
         get { settings.wheelSlots }
         set {
@@ -173,7 +192,7 @@ final class RotateViewModel {
         )
         allItems = result.items
         relaxedDimensions = result.relaxedDimensions
-        isOverConstrained = result.isOverConstrained
+        emptyReason = result.emptyReason
         winner = nil
         spinner.reset()
     }
@@ -193,7 +212,7 @@ final class RotateViewModel {
     private func clearNotices() {
         errorMessage = nil
         relaxedDimensions = []
-        isOverConstrained = false
+        emptyReason = nil
         didFallBackToGeneric = false
         searchedCuisines = []
     }
@@ -434,6 +453,7 @@ struct RotateView: View {
                     activeDimensions: model.source == .dishes ? FoodTag.Dimension.allCases : [.cuisine],
                     searchesByKeyword: model.source == .restaurants,
                     radius: model.source == .restaurants ? $model.searchRadius : nil,
+                    isSpinning: model.spinner.isSpinning,
                     onChange: { model.load() },
                     onReroll: {
                         model.load()
@@ -497,7 +517,7 @@ struct RotateView: View {
     private var statusArea: some View {
         // 五種提示的互斥順序是既有的優先序，**不要動**。
         //
-        // 「沒有符合的料理」（`isOverConstrained`）已經移進轉盤區 —— 只有那一種發生時
+        // 「沒有符合的料理」（`emptyReason`）已經移進轉盤區 —— 只有那一種發生時
         // 轉盤是空的，訊息放在使用者已經在看的地方，而且不必講兩次。
         // 它從這條 `else if` 鏈裡拿掉了，**但其餘四種的先後沒有跟著改**：
         // 錯誤仍然最前面，接著改列一般餐廳 → 已放寬 → 只湊得出 N 格。
@@ -580,15 +600,29 @@ struct RotateView: View {
 
     @ViewBuilder
     private var emptyHint: some View {
-        if model.isOverConstrained {
-            // 忌口把選項全篩光了。這一種提示只在轉盤是空的時候發生，所以講在這裡就好 ——
+        // 空轉盤有兩種原因，**出口不一樣，所以要分開講**。
+        // 使用者只會照畫面寫的那條路走 —— 指錯地方比不指還糟。
+        if let reason = model.emptyReason {
+            // 這一種提示只在轉盤是空的時候發生，所以講在這裡就好 ——
             // 以前上面出一張卡片、下面又寫一句「換個條件再試試」，同一件事講了兩次。
-            ActionNotice(
-                symbol: "exclamationmark.triangle.fill",
-                title: "沒有符合的料理",
-                message: "忌口條件把所有選項都篩掉了。這一項不會自動放寬，請把其中一個忌口取消再試。"
-            )
-            .padding(.horizontal, Theme.space16)
+            switch reason {
+            case .restrictions:
+                ActionNotice(
+                    symbol: "exclamationmark.triangle.fill",
+                    title: "沒有符合的料理",
+                    message: "忌口條件把所有選項都篩掉了。這一項不會自動放寬，請把其中一個忌口取消再試。"
+                )
+                .padding(.horizontal, Theme.space16)
+            case .libraryEmpty:
+                // **不要叫他取消忌口** —— 這個人可能一個忌口都沒選，
+                // 而且就算取消了也還是空的。他的出口在「我的清單」。
+                ActionNotice(
+                    symbol: "tray",
+                    title: "候選池是空的",
+                    message: "所有料理都被設成「以後都不要」了。到「設定 → 我的清單」把想吃的還原回來，或自己加一道。"
+                )
+                .padding(.horizontal, Theme.space16)
+            }
         } else {
             VStack(spacing: Theme.space8) {
                 Image(systemName: model.source.symbolName)

@@ -95,6 +95,20 @@ final class CustomFoodStore {
         }
     }
 
+    /// 一次拿掉好幾道。清單頁的多選刪除走這裡。
+    ///
+    /// **先把要刪的取出來，再刪。** `exclude` 當場就會動到 `customItems`，
+    /// 所以邊走 index 邊刪，第二個 index 指到的已經不是使用者選的那一筆了 ——
+    /// 輕則刪錯人，選到最後一個就直接越界 trap（實測 `IndexSet(0..<3)` 會當場掛掉）。
+    ///
+    /// **這件事放在 store 而不是留在 `MyListView` 的 `.onDelete` 裡**，
+    /// 是因為只有這裡知道「刪一筆會動到這個陣列」—— 那是 store 自己的性質，
+    /// 不該要求每一個呼叫端都記得。收進來之後它也才測得到。
+    func exclude(atOffsets offsets: IndexSet) {
+        // `map` 是急切求值：所有查表都在第一次 `exclude` 之前做完。
+        for item in offsets.map({ customItems[$0] }) { exclude(item) }
+    }
+
     func restore(id: String) {
         excludedIDs.remove(id)
         persistExclusions()

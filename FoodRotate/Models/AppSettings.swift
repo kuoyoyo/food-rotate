@@ -25,7 +25,14 @@ final class AppSettings {
         didSet { defaults.set(hasSeenWelcome, forKey: Key.hasSeenWelcome) }
     }
 
-    /// 轉盤要幾格。改了不必重抽，畫面會直接從既有的候選裡取用。
+    /// 轉盤要幾格。**這裡只負責存，不要綁到 UI 上。**
+    ///
+    /// 改格數要連帶做三件事（清 winner、reset 轉盤、不夠就補格），
+    /// 而那三件事只有 `RotateViewModel` 做得到 —— 它才知道現在盤上有什麼。
+    /// 設定頁曾經直接綁這個屬性，於是從設定頁改完格數，轉盤不補格，
+    /// 狀態列還會說出一句不是事實的「只湊得出 8 格」。
+    ///
+    /// **改格數的入口是 `RotateViewModel.wheelSlots`，只有那一個。**
     var wheelSlots: Int {
         didSet { defaults.set(wheelSlots, forKey: Key.wheelSlots) }
     }

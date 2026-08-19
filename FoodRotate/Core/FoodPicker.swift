@@ -8,8 +8,29 @@ struct PickResult: Equatable, Sendable {
     /// 空陣列代表選的條件本來就夠用。
     var relaxedDimensions: [FoodTag.Dimension]
 
+    /// 一道都抽不到的時候，**是哪一種空**。抽得到就是 `nil`。
+    ///
+    /// 分成兩種是因為它們的**出口不同**，而使用者只會照畫面講的那條路走。
+    var emptyReason: EmptyReason?
+
+    /// 一道都抽不到的兩種原因。
+    enum EmptyReason: Equatable, Sendable {
+        /// 候選池本身就是空的 —— 使用者把料理全部「以後都不要」了。
+        ///
+        /// 出口在設定頁的「我的清單」。這種情況下他**可能一個忌口都沒選**，
+        /// 叫他去取消忌口是把他指向一個沒有東西可以取消的地方。
+        case libraryEmpty
+
+        /// 忌口把候選池裡的東西全篩掉了。忌口不會自動放寬（產品規則），
+        /// 所以出口是取消其中一個忌口。
+        case restrictions
+    }
+
     /// 忌口條件本身就篩不出東西。這時候不放寬、不隨便給，直接讓 UI 說清楚。
-    var isOverConstrained: Bool { items.isEmpty }
+    ///
+    /// **這以前是 `items.isEmpty`**，於是「候選池空了」也被算成忌口太嚴 ——
+    /// 兩種完全不同的處境給同一句話，而其中一句是錯的。
+    var isOverConstrained: Bool { emptyReason == .restrictions }
 }
 
 /// 從候選池裡挑出這一輪要放上轉盤的菜。
@@ -35,13 +56,22 @@ enum FoodPicker {
         count: Int,
         avoiding previous: Set<String> = []
     ) -> PickResult {
+        // 第零步：候選池本身是不是空的。
+        //
+        // **要跟「忌口篩光了」分開回報。** 兩種都是空轉盤，但出口不一樣：
+        // 這一種的出口在設定頁的「我的清單」（把排除掉的還原回來），
+        // 而且這個人可能一個忌口都沒選 —— 叫他取消忌口是句錯話。
+        guard !library.isEmpty else {
+            return PickResult(items: [], relaxedDimensions: [], emptyReason: .libraryEmpty)
+        }
+
         // 第一步：忌口。硬條件，違反就是不能吃，任何情況都不放寬。
         // 篩完是空的就直接回報，不退而求其次 —— 讓「不吃牛」的人看到牛肉麵，
         // 比讓他看到空轉盤嚴重得多。
         let restrictions = filter.tags(in: .restriction)
         let allowed = library.filter { $0.tags.isSuperset(of: restrictions) }
         guard !allowed.isEmpty else {
-            return PickResult(items: [], relaxedDimensions: [])
+            return PickResult(items: [], relaxedDimensions: [], emptyReason: .restrictions)
         }
 
         // 第二步：軟條件。同維度內取聯集（選了「日式」跟「韓式」＝日式或韓式），
@@ -79,9 +109,13 @@ enum FoodPicker {
         //
         // 這裡不能再洗一次牌：`pool` 的順序就是「符合程度」的順序，
         // 洗掉就等於把剛剛費工累積的優先權丟掉。每一層內部已經各自洗過了。
+        // 走到這裡 `allowed` 一定非空，而全部放寬之後 `absorb` 會把 allowed 整批收進來，
+        // 所以 `pool` 不會是空的 —— 但原因還是照著實際結果算，不寫死一個 `nil`。
+        let picked = Array(pool.prefix(count))
         return PickResult(
-            items: Array(pool.prefix(count)),
-            relaxedDimensions: relaxed
+            items: picked,
+            relaxedDimensions: relaxed,
+            emptyReason: picked.isEmpty ? .restrictions : nil
         )
     }
 
