@@ -103,7 +103,10 @@ struct HistoryView: View {
 
     private func row(_ record: SpinRecord) -> some View {
         DishListRow(
-            emoji: record.winner?.displayEmoji ?? "🍽️",
+            // 線稿，不是 emoji：這一列顯示的是**我們資料裡**中選的那一道，
+            // 那顆 emoji 是 `foods.json` 裡我們自己寫的，不是使用者挑的
+            // （見 `DishListRow` 檔頭那張表）。
+            art: .icon(record.winnerIcon),
             title: record.winnerName,
             subtitle: record.prompt.isEmpty ? "沒有指定條件" : record.prompt,
             // 舊版紀錄的 JSON 少了欄位、解不開（見 `SpinRecord.items`），

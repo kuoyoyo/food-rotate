@@ -97,6 +97,18 @@ final class SpinRecord {
         return items.first { $0.name == winnerName }
     }
 
+    /// 歷史頁那一列左邊要畫哪一個線稿圖示。
+    ///
+    /// **降級到 `.neutral` 有兩種情況，都是它本來就該接住的：**
+    ///
+    /// 1. 舊紀錄的 JSON 解不開（見 `items`），`winner` 是 nil —— 沒有資料可以判斷類型。
+    /// 2. 這一筆是店家紀錄。店家借用 `FoodItem` 但沒有吃法標籤，
+    ///    `FoodIcon.icon(for:)` 本來就會回 `.neutral`（那是它存在的理由之一）。
+    ///
+    /// 規則放在這裡而不是 `HistoryView` 裡，理由跟 `FoodItem.icon` 一樣：
+    /// **同一條規則只能有一個來源。**
+    var winnerIcon: FoodIcon { winner?.icon ?? .neutral }
+
     private static func encode(_ items: [FoodItem]) -> String {
         guard let data = try? JSONEncoder().encode(items) else { return "[]" }
         return String(data: data, encoding: .utf8) ?? "[]"

@@ -299,13 +299,17 @@ struct MyListView: View {
         }
     }
 
-    /// 跟歷史頁共用的列。這一頁的 emoji **百分之百是使用者挑的**，更沒有理由換掉。
+    /// 跟歷史頁共用的列，但**左邊那一格刻意不一樣**。
+    ///
+    /// 歷史頁 2026-08-21 改成線稿了，這一頁沒有跟著改 —— 依據是「這是誰的東西」：
+    /// 這一頁列的是使用者自己加的料理，那顆 emoji **百分之百是他在新增表單裡挑的**。
+    /// 換掉它就是換掉使用者的內容（見 `DishListRow` 檔頭那張表）。
     private func row<Trailing: View>(
         _ item: FoodItem,
         @ViewBuilder trailing: () -> Trailing = { EmptyView() }
     ) -> some View {
         DishListRow(
-            emoji: item.displayEmoji,
+            art: .emoji(item.displayEmoji),
             title: item.name,
             subtitle: item.category,
             badgeSource: item,

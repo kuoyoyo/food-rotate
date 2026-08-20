@@ -6,15 +6,48 @@ import SwiftUI
 /// 差別只有右邊掛什麼，所以是同一個元件而不是各寫一份 —— S4 的候選清單
 /// 之所以會有「靜止態橘色尖角」那種問題，就是因為列的細節散在各處。
 ///
-/// **emoji 保留，不換成線稿圖示。** 這兩頁顯示的是使用者做過的事、加過的東西，
-/// 那顆 emoji 可能是他自己在新增料理時挑的。轉盤與候選清單換成線稿是對的，
-/// 因為那裡顯示的是內建資料的分類。
+/// ## 左邊那一格畫 emoji 還是線稿
+///
+/// 規則只有一句：
 ///
 /// > 我們可以換掉自己的樣式，不能換掉使用者的內容。
 ///
-/// 線稿圖示原本負責傳達的「類型」改用 `TagBadge` 用文字講，資訊一點都沒有少。
+/// **S5-B 當初把這條規則套成「這兩頁一律保留 emoji」，那一步套錯了。**
+/// 原本的理由寫著「那顆 emoji 可能是他自己在新增料理時挑的」——
+/// 這對「我的清單」百分之百成立，對歷史頁卻不成立：歷史頁那顆 emoji 來自
+/// `record.winner`，而中選的通常是內建料理，那顆 emoji 是 `foods.json` 裡
+/// **我們自己寫的**，不是使用者挑的。
+///
+/// 所以規則沒有變，套法變了 —— **依據是「這是誰的東西」，不是「這是哪一頁」**：
+///
+/// | 頁面 | 內容是誰的 | 畫什麼 |
+/// |---|---|---|
+/// | 歷史 | 我們的資料（中選那一道） | 線稿 `FoodIcon` |
+/// | 我的清單 | 使用者加的、使用者挑的 emoji | emoji |
+///
+/// （kuoyo 2026-08-21 指出歷史頁還是 emoji。原本的判斷與更正一起留在這裡，
+/// 不然下一個人照舊稿又會把它改回去。）
+///
+/// 線稿負責的「類型」資訊在兩頁都另外由 `TagBadge` 用文字講，所以哪一種都不會少資訊。
+/// 列左邊那一格畫什麼。
+///
+/// **放在 `DishListRow` 外面，不是巢狀在裡面。** 巢狀的話它會變成
+/// `DishListRow<Trailing>.DishRowArt` —— 一個跟 `Trailing` 綁在一起的型別，
+/// 於是 `Trailing` 從 `art:` 這個參數就推得出來，跟預設值是 `EmptyView` 的
+/// `trailing:` 打架，編譯器會警告（而且未來的 Swift 版本會直接變成錯誤）。
+/// 那個型別參數跟「左邊畫什麼」一點關係都沒有，本來就不該綁在一起。
+///
+/// 這也是 `PROJECT_STATUS.md` 記著的 `DishListRow<EmptyView>.separatorInset`
+/// 那個彆扭讀法的同一個根：**不依賴 `Trailing` 的東西不要放進泛型型別裡。**
+enum DishRowArt: Equatable {
+    /// 使用者自己挑的 emoji。**不要替他換掉。**
+    case emoji(String)
+    /// 我們的線稿圖示，跟轉盤與候選清單同一套。
+    case icon(FoodIcon)
+}
+
 struct DishListRow<Trailing: View>: View {
-    let emoji: String
+    let art: DishRowArt
     let title: String
     /// 第二行。歷史頁放條件摘要，我的清單放分類。
     let subtitle: String?
@@ -35,20 +68,23 @@ struct DishListRow<Trailing: View>: View {
     //
     // 之所以是 computed 而不是 `static let`：泛型型別不能有 static 儲存屬性。
 
-    /// emoji 佔的寬度。分隔線的縮排要對齊它的右緣，所以是一個具名常數。
-    nonisolated static var emojiWidth: CGFloat { 32 }
-    /// 分隔線該縮排多少 —— 左內距 + emoji + 兩者之間的間隔。
-    nonisolated static var separatorInset: CGFloat { Theme.space12 + emojiWidth + Theme.space12 }
+    /// 左邊那一格佔的寬度。分隔線的縮排要對齊它的右緣，所以是一個具名常數。
+    ///
+    /// **emoji 與線稿共用同一個寬度**，兩頁的分隔線縮排才會一致 ——
+    /// 線稿本身只畫 24pt（跟候選清單同尺寸），置中放在這 32pt 的格子裡。
+    nonisolated static var artWidth: CGFloat { 32 }
+    /// 分隔線該縮排多少 —— 左內距 + 左邊那一格 + 兩者之間的間隔。
+    nonisolated static var separatorInset: CGFloat { Theme.space12 + artWidth + Theme.space12 }
 
     init(
-        emoji: String,
+        art: DishRowArt,
         title: String,
         subtitle: String?,
         badgeSource: FoodItem?,
         showsFormBadge: Bool,
         @ViewBuilder trailing: () -> Trailing = { EmptyView() }
     ) {
-        self.emoji = emoji
+        self.art = art
         self.title = title
         self.subtitle = subtitle
         self.badgeSource = badgeSource
@@ -58,9 +94,7 @@ struct DishListRow<Trailing: View>: View {
 
     var body: some View {
         HStack(spacing: Theme.space12) {
-            Text(emoji)
-                .font(.system(size: 28))
-                .frame(width: Self.emojiWidth)
+            leading
 
             VStack(alignment: .leading, spacing: Theme.space2) {
                 HStack(spacing: Theme.space4) {
@@ -88,6 +122,29 @@ struct DishListRow<Trailing: View>: View {
         // 56 而不是候選清單的 44：這裡的列有兩行（菜名 + 說明）。
         .frame(minHeight: 56)
         .contentShape(Rectangle())
+    }
+
+    /// 左邊那一格。
+    @ViewBuilder
+    private var leading: some View {
+        switch art {
+        case .emoji(let emoji):
+            Text(emoji)
+                .font(.system(size: 28))
+                .frame(width: Self.artWidth)
+        case .icon(let icon):
+            // 24pt 跟候選清單那一份同尺寸，走 `textSecondary` ——
+            // 這裡的圖示是輔助資訊，不該比菜名重（跟 `FoodRow` 同一條）。
+            Image(icon.assetName)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 24, height: 24)
+                .frame(width: Self.artWidth)
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                // 類型資訊由旁邊的 `TagBadge` 用文字講，這裡不必再報一次。
+                .accessibilityHidden(true)
+        }
     }
 
     @ViewBuilder
