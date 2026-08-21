@@ -5,6 +5,10 @@
 iOS App，SwiftUI 寫的。**轉盤本身完全離線** —— 50 道料理內建在 App 裡，不需要網路、不上傳任何資料。
 只有「去哪吃」這個模式會用到定位與地圖搜尋（見下）。
 
+| 轉盤 | 結果頁 | 去哪吃 |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/wheel-light.png" width="240" alt="轉盤主畫面，四格日式料理"> | <img src="docs/screenshots/result.png" width="240" alt="結果頁：日式拉麵的優點與缺點"> | <img src="docs/screenshots/nearby.png" width="240" alt="去哪吃模式，轉盤上是附近的餐廳"> |
+
 ---
 
 ## 兩個模式
@@ -28,6 +32,13 @@ iOS App，SwiftUI 寫的。**轉盤本身完全離線** —— 50 道料理內�
 
 **每道菜都有缺點。** 候選清單會告訴你其他選項好在哪、雷在哪 —— 目的是讓你有依據推翻它，
 不是說服你接受。
+
+| 選條件 | 深色模式 | 歷史 |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/filter.png" width="240" alt="篩選面板，忌口獨立一區"> | <img src="docs/screenshots/wheel-dark.png" width="240" alt="深色模式的轉盤"> | <img src="docs/screenshots/history.png" width="240" alt="歷史紀錄，每筆都記著當時的條件"> |
+
+「忌口」在篩選面板裡是獨立的一區，標題就寫著「一定不會出現」—— 那是上面那條規則在畫面上的樣子。
+歷史每一筆也記著當時的條件（截圖裡的「日式・無牛」），點右邊的箭頭可以用同一組條件再抽一次。
 
 ---
 
