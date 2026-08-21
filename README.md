@@ -2,7 +2,8 @@
 
 不知道吃什麼的時候，讓它幫你決定。
 
-iOS App，SwiftUI 寫的。**完全離線**，50 道料理內建在 App 裡，不需要網路、不上傳任何資料。
+iOS App，SwiftUI 寫的。**轉盤本身完全離線** —— 50 道料理內建在 App 裡，不需要網路、不上傳任何資料。
+只有「去哪吃」這個模式會用到定位與地圖搜尋（見下）。
 
 ---
 
@@ -53,22 +54,33 @@ FoodRotate/
   DesignTokens.swift   色票與尺寸的唯一來源（不 import SwiftUI）
   Theme.swift          把 token 包成 SwiftUI 型別
 
-FoodRotateTests/       43 個單元測試
+FoodRotateTests/       99 個單元測試（21 個 suite）
 FoodRotateWidget/      桌面小工具
 Tools/make-icon.swift  App Icon 產生器，讀同一份 DesignTokens
 ```
 
 `Core/` 只用 Foundation 是刻意的界線 —— 抽樣邏輯不該知道畫面長什麼樣。
 
-### 文件
+### 文件（這個 repo 裡文件比程式多）
 
-專案用三個資料夾分角色存放協作文件，各自有 `README`：
+這不是意外。專案是用「PM ／ 設計師 ／ 程式設計師」三個角色分工做出來的，
+角色之間靠文件往返：派工單、規格、完工回報、驗收單、問題單。三個資料夾各自有 `README`：
 
 | 資料夾 | 內容 |
 |---|---|
 | `Design/` | 設計規格、視覺提案、圖示原始檔 |
 | `Coder/` | 工程交接、實作回報、驗收與問題單 |
 | `PM/` | 跨角色的統整與裁示 |
+
+**這些是當下往返的原始文件，不是事後補寫的。** 所以裡面留著沒通過的驗收
+（`PM驗收-S2-未通過.md`、`PM驗收-S4-還差一項.md`）、被退回的做法、以及改變主意的理由。
+兩份 QC 稽核報告也照原樣留著，包含它們抓到的實際缺陷。
+
+刻意不整理成一條成功的直線 —— 只留通過的那一版，就看不出哪些判斷當初是有爭議的，
+而那正是這批文件唯一有價值的地方。
+
+想看結論不想看過程的話，兩份就夠：[`PROJECT_STATUS.md`](PROJECT_STATUS.md)（現況與已知問題）
+和 [`大改紀錄-拿掉語言模型.md`](大改紀錄-拿掉語言模型.md)（最大的一次轉向）。
 
 ---
 
@@ -94,4 +106,5 @@ xcodebuild test  -scheme FoodRotate -destination 'platform=iOS Simulator,name=iP
 ---
 
 **製作**：Claude Code ／ **設計**：kuoyo
-© 2026 kuoyo
+
+本專案以 MIT 授權釋出，見 [`LICENSE`](LICENSE)。
