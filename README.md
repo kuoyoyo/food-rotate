@@ -15,10 +15,15 @@ iOS App，SwiftUI 寫的。**轉盤本身完全離線** —— 50 道料理內�
 
 | | 做什麼 |
 |---|---|
-| **吃什麼** | 從 50 道內建料理裡抽，可以用 34 個標籤篩條件。完全離線 |
+| **吃什麼** | 從 50 道內建料理裡抽，可以用 33 個標籤篩條件。完全離線 |
 | **去哪吃** | 找附近實際有在營業的餐廳。只有這個模式會用到定位與網路 |
 
 轉完會給一張結果頁：菜名、為什麼可以吃、要注意的地方，還可以直接去找附近有賣的店。
+
+**那 50 道是什麼，可以直接看：[`docs/菜色資料庫.md`](docs/菜色資料庫.md)** ——
+每道菜的菜系、吃法、忌口標籤與優缺點全文照列，另外附一張標籤覆蓋率表。
+那份檔案是由 `foods.json` 產生的（`Tools/make-food-catalog.swift`），不是手寫的副本，
+所以不會有一份說法留在文件裡過期。
 
 ---
 
@@ -46,6 +51,7 @@ iOS App，SwiftUI 寫的。**轉盤本身完全離線** —— 50 道料理內�
 
 |  | 利用的元件 |
 |---|---|
+| 版本 | 1.1.0（build 2） |
 | 平台 | iOS 26.0+ |
 | 語言 | Swift 6.0（嚴格併發） |
 | UI | SwiftUI，轉盤是 `Canvas` 手繪 + 自訂緩動狀態機 |
@@ -65,9 +71,11 @@ FoodRotate/
   DesignTokens.swift   色票與尺寸的唯一來源（不 import SwiftUI）
   Theme.swift          把 token 包成 SwiftUI 型別
 
-FoodRotateTests/       99 個單元測試（21 個 suite）
+FoodRotateTests/       109 個單元測試（22 個 suite）
 FoodRotateWidget/      桌面小工具
-Tools/make-icon.swift  App Icon 產生器，讀同一份 DesignTokens
+Tools/make-icon.swift          App Icon 產生器，讀同一份 DesignTokens
+Tools/make-food-catalog.swift  菜色資料庫產生器，跟 App 編同一批 Core 型別
+docs/菜色資料庫.md              上面那支產生的，50 道全文
 ```
 
 `Core/` 只用 Foundation 是刻意的界線 —— 抽樣邏輯不該知道畫面長什麼樣。
