@@ -28,7 +28,7 @@ enum FoodLibrary {
             // 這裡刻意**只印不當掉**，跟上面解析失敗的處理不一樣：解析失敗是「這份資料不能用」，
             // 標籤缺漏是「這份資料能用，但有幾道菜之後會沒有圖」。為了後者讓 App 開不起來，
             // 會擋住所有其他開發，而且缺哪個標籤是內容決策，不是開發者當場補得掉的東西。
-            if let report = FoodDataAudit.consoleReport(for: FoodDataAudit.findings(in: items)) {
+            if let report = FoodDataAudit.consoleReport(for: FoodDataAudit.libraryFindings(in: items)) {
                 print(report)
             }
             #endif

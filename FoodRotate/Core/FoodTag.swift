@@ -61,10 +61,23 @@ enum FoodTag: String, Codable, Hashable, Sendable, CaseIterable {
     // 刻意是**正面標記**（「這道菜不含牛」）而不是負面排除。
     // 資料是人寫死的，標「無牛」比執行期用關鍵字猜「牛肉麵含牛」可靠得多，
     // 也不會像舊的 DietaryFilter 那樣把「牛蒡天婦羅」誤殺。
+    //
+    // **這裡曾經有第四個：`vegetarianFriendly = "素可"`，2026-08-27 移除。**
+    // 它從頭到尾沒有任何一道菜掛過（50 道裡零命中），而忌口是硬條件、
+    // 永遠不放寬 —— `FoodPicker` 第一步就會 `guard !allowed.isEmpty` 直接回
+    // `.restrictions`。所以點下「素可」**必定**是空轉盤，畫面還會請他
+    // 「取消其中一個忌口」，而他取消了還是空的。一個永遠給不出東西的選項
+    // 比沒有這個選項糟。
+    //
+    // 兩輪 QC 與 99 支測試都沒抓到，是因為所有檢查都在問「這道菜有沒有標籤」，
+    // 沒有人反過來問「這個標籤有沒有菜」。那道防線現在補在
+    // `FoodDataAudit.Finding.restrictionMatchesNothing`。
+    //
+    // 要重新加回素食支援的話，**先有菜再有標籤**：foods.json 掛好之後再加 case，
+    // 順序反過來就會再製造一次同樣的死路。
     case noBeef = "無牛"
     case noPork = "無豬"
     case noSeafood = "無海鮮"
-    case vegetarianFriendly = "素可"
 
     // MARK: 其他
     case cheap = "便宜"
@@ -84,7 +97,7 @@ enum FoodTag: String, Codable, Hashable, Sendable, CaseIterable {
             .occasion
         case .light, .heavy, .spicy, .sweet:
             .flavour
-        case .noBeef, .noPork, .noSeafood, .vegetarianFriendly:
+        case .noBeef, .noPork, .noSeafood:
             .restriction
         case .cheap, .quick, .filling, .healthy:
             .trait

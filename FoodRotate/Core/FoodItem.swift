@@ -67,3 +67,36 @@ enum WheelCapacity {
     /// 預設格數。八格是字放得下又有得選的平衡點。
     static let defaultSlots = 8
 }
+
+extension FoodItem {
+    /// 標籤**寬容解碼**：不認得的 rawValue 丟掉那個標籤，不是丟掉整道菜。
+    ///
+    /// 合成的 `Decodable` 遇到不認得的標籤會 throw，而這個型別的兩條解碼路徑
+    /// 都是 `try?`（`CustomFoodStore` 讀 UserDefaults、`SpinRecord.items` 讀 SwiftData），
+    /// 於是一個標籤解不開的後果是**整包資料無聲消失** —— 使用者掛了「素可」的可能只有
+    /// 一道自訂料理，賠掉的卻是他全部的自訂料理。
+    ///
+    /// **這個取捨的代價要講清楚**：丟掉標籤的那道菜會從某些篩選結果裡消失。
+    /// 接受它是因為那正是 `FoodDataAudit` 在管的事（缺標籤有人接），
+    /// 而「整份清單不見了」沒有任何機制接得住。
+    ///
+    /// 前提：`FoodTag` 的 rawValue 就是資料檔裡寫的字（見 `FoodTag` 檔頭）。
+    /// 所以「不認得」只有兩種來源 —— 打錯字，或是這個 case 被移除了
+    /// （2026-08-27 移除「素可」是第一次）。兩種都該丟標籤而不是丟菜。
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        emoji = try container.decode(String.self, forKey: .emoji)
+        category = try container.decode(String.self, forKey: .category)
+        pros = try container.decode([String].self, forKey: .pros)
+        cons = try container.decode([String].self, forKey: .cons)
+        // 先解成字串再過濾。解成 `Set<FoodTag>` 就沒有「過濾」這個時機了。
+        tags = Set(try container.decode([String].self, forKey: .tags).compactMap(FoodTag.init(rawValue:)))
+    }
+
+    /// 明寫出來讓上面那個 `init(from:)` 與合成的 `encode(to:)` 用同一份鍵。
+    private enum CodingKeys: String, CodingKey {
+        case id, name, emoji, category, tags, pros, cons
+    }
+}

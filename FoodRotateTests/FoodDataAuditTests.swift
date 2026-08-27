@@ -17,6 +17,58 @@ struct FoodDataAuditTests {
         FoodItem(id: id, name: name, emoji: "🍽️", category: "測試", tags: tags, pros: [], cons: [])
     }
 
+    // MARK: - 標籤有沒有菜（2026-08-27 補的那道防線）
+
+    /// 造一組「三個忌口都有人掛」的健康資料，讓下面兩條只在該叫的時候叫。
+    private static var wellTaggedPair: [FoodItem] {
+        [
+            Self.food(id: "a", name: "日式拉麵", tags: [.japanese, .noodles, .noBeef, .noSeafood]),
+            Self.food(id: "b", name: "滷肉飯", tags: [.taiwanese, .rice, .noBeef, .noPork]),
+        ]
+    }
+
+    @Test("一個沒有任何菜掛到的忌口標籤要被抓出來 —— 那是一條死路")
+    func 零命中的忌口會被抓到() {
+        // 「無海鮮」在這組資料裡沒有人掛。忌口不放寬（`FoodPicker` 第一步就 guard），
+        // 所以選了它必定空轉盤，而畫面給的出口「取消忌口」救不了他。
+        let items = [
+            Self.food(id: "a", name: "日式拉麵", tags: [.japanese, .noodles, .noBeef]),
+            Self.food(id: "b", name: "滷肉飯", tags: [.taiwanese, .rice, .noBeef, .noPork]),
+        ]
+
+        #expect(
+            FoodDataAudit.libraryFindings(in: items) == [.restrictionMatchesNothing(tag: .noSeafood)]
+        )
+    }
+
+    @Test("這條檢查只在整份資料庫的入口跑，逐筆的那個入口不准碰它")
+    func 逐筆入口不做覆蓋率檢查() {
+        // 這是分兩個入口的整個理由。同一份兩筆的資料：
+        // `libraryFindings` 該叫（它問的是「這份清單完不完整」），
+        // `findings` 不准叫（它問的是逐筆的問題，而兩筆本來就不會蓋滿三個忌口）。
+        // 混在一起的話，所有用造出來的小資料寫的測試會全部誤報。
+        let items = [Self.food(id: "a", name: "日式拉麵", tags: [.japanese, .noodles])]
+
+        #expect(FoodDataAudit.findings(in: items).isEmpty)
+        #expect(FoodDataAudit.libraryFindings(in: items).count == 3, "三個忌口都沒人掛")
+    }
+
+    @Test("軟標籤零命中不叫 —— 那是放寬機制在管的，不是缺陷")
+    func 軟標籤零命中不叫() {
+        // 這組資料一個「韓式」「宵夜」「偏甜」都沒有，但那些維度會被逐層放寬，
+        // 使用者照樣拿得到一盤菜，畫面也會說「已放寬 X」。在這裡叫等於喊狼來了。
+        #expect(FoodDataAudit.libraryFindings(in: Self.wellTaggedPair).isEmpty)
+    }
+
+    @Test("真實的 foods.json 三個忌口都有菜掛著")
+    func 真實資料沒有死路() {
+        // 這一條就是 2026-08-27 那個缺陷的門。「素可」在的時候它會紅。
+        let findings = FoodDataAudit.libraryFindings(in: FoodLibrary.all)
+            .filter { if case .restrictionMatchesNothing = $0 { true } else { false } }
+
+        #expect(findings.isEmpty, "有忌口標籤篩不出任何東西：\(findings)")
+    }
+
     @Test("菜系與吃法都有的資料不會被誤報")
     func 健康的資料沒有問題() {
         let items = [

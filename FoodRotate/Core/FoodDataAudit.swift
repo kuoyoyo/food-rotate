@@ -44,7 +44,25 @@ enum FoodDataAudit {
         ///
         /// 豁免清單不會自己過期，留著會讓下一個真正的缺漏被靜靜吃掉。
         case staleCuisineExemption(id: String, name: String)
+
+        /// 這個**忌口**標籤在整份資料裡一道菜都沒有掛到。
+        ///
+        /// 這是 2026-08-27 稽核抓到的那一類缺陷（「素可」零命中）。上面兩條問的都是
+        /// 「這道菜有沒有標籤」，**沒有人反過來問「這個標籤有沒有菜」** ——
+        /// 於是一個永遠篩不出東西的選項在篩選器上掛了好幾個月，兩輪 QC 都沒看到。
+        case restrictionMatchesNothing(tag: FoodTag)
     }
+
+    /// 為什麼只驗忌口，不驗全部六個維度。
+    ///
+    /// 忌口是**硬條件**：`FoodPicker` 第一步篩完就 `guard !allowed.isEmpty`，
+    /// 空了直接回 `.restrictions`，不放寬、不退而求其次。所以一個零命中的忌口標籤
+    /// 等於一條死路 —— 點下去必定空轉盤，而畫面給的出口（取消忌口）救不了他。
+    ///
+    /// 軟標籤零命中只會被逐層放寬掉（`FoodPicker` 第三步），使用者仍然拿得到一盤菜、
+    /// 而且畫面會老實說「已放寬 X」。那是**設計好的降級，不是缺陷**，
+    /// 在這裡叫它一聲只會讓這份報告開始喊狼來了。
+    static let matchCheckedDimensions: [FoodTag.Dimension] = [.restriction]
 
     static func findings(in items: [FoodItem]) -> [Finding] {
         var results: [Finding] = []
@@ -82,6 +100,32 @@ enum FoodDataAudit {
         return results
     }
 
+    /// **整份資料庫**的稽核：逐筆的那些，加上只有對完整資料庫才成立的那些。
+    ///
+    /// 為什麼要跟 `findings(in:)` 分開，而不是多加一條進去：
+    ///
+    /// `findings(in:)` 問的每一件事都是**逐筆**的（這道菜有沒有菜系？這個 id 撞號了嗎？），
+    /// 所以它對任何一份清單都成立 —— 測試才能拿兩三筆造出來的資料逼它出聲。
+    /// 「這個標籤有沒有菜掛到」不是逐筆的問題，它問的是**這一份清單完不完整**。
+    /// 把它混進 `findings(in:)`，兩筆的測試資料會立刻被判定成「三個忌口都沒人掛」——
+    /// 那不是缺陷，那只是一份小清單。**一個對小清單必定誤報的檢查等於沒有檢查。**
+    ///
+    /// 所以分兩個入口，各自的前提寫在名字上：逐筆的叫 `findings`，
+    /// 要求完整的叫 `libraryFindings`。`FoodLibrary` 載入時走後者。
+    static func libraryFindings(in items: [FoodItem]) -> [Finding] {
+        var results = findings(in: items)
+
+        // 反過來問：每一個忌口標籤有沒有菜掛著。
+        // 依 `Dimension.tags` 的順序回報，理由跟上面一樣 —— 順序要穩定。
+        for dimension in matchCheckedDimensions {
+            for tag in dimension.tags where !items.contains(where: { $0.tags.contains(tag) }) {
+                results.append(.restrictionMatchesNothing(tag: tag))
+            }
+        }
+
+        return results
+    }
+
     /// 給 DEBUG 主控台看的報告。沒有問題就回 `nil`。
     static func consoleReport(for findings: [Finding]) -> String? {
         guard !findings.isEmpty else { return nil }
@@ -95,6 +139,11 @@ enum FoodDataAudit {
                 lines.append("  • \(name)（\(id)）少了「\(dimension.rawValue)」維度的標籤")
             case let .staleCuisineExemption(id, name):
                 lines.append("  • \(name)（\(id)）已經有菜系標籤了，把它從 cuisineExemptions 移除")
+            case let .restrictionMatchesNothing(tag):
+                lines.append(
+                    "  • 忌口「\(tag.rawValue)」一道菜都沒有掛到 —— 選了它必定空轉盤。"
+                    + "補資料，或把這個 case 從 FoodTag 移除"
+                )
             }
         }
         return lines.joined(separator: "\n")
