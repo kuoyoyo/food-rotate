@@ -4,16 +4,24 @@ import UIKit
 import WidgetKit
 
 extension Color {
-    /// App 的橘色。
+    /// App 的橘色 —— **讀 token，不再手抄。**
     ///
-    /// **這是 `Assets.xcassets/AccentColor` 的複本，改一邊就要改另一邊。**
-    /// asset catalog 只屬於 App target，extension 讀不到，`Color.accentColor`
-    /// 在這裡會退回系統藍——實測島上的進度條真的變成藍色。
-    /// 把整個 catalog 複製一份到 extension 是更大的重複，所以選擇在這裡寫死並註明出處。
+    /// 問題還是原來那一個：asset catalog 只屬於 App target，extension 讀不到，
+    /// `Color.accentColor` 在這裡會退回系統藍（實測島上的進度條真的變成藍色）。
+    /// 但以前的解法是在這裡寫死一組數字並註明出處，於是同一組橘色在專案裡有三份
+    /// 手抄本，靠一句「改一邊就要改另一邊」的註解維持同步。
+    ///
+    /// 2026-08-27 改成：`DesignTokens.swift` 加進這個 target 的編譯來源
+    /// （它只 import Foundation，跨 target 沒有障礙），直接讀
+    /// `DesignTokens.accent`。色票 JSON 那一份則由
+    /// `AccentColorTests.資產本身正確()` 跟 token 釘在一起。
+    ///
+    /// 所以現在**沒有任何一份是手抄的**，那句要人記得的註解可以刪掉了。
     static let brand = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark
-            ? UIColor(red: 1.000, green: 0.478, blue: 0.263, alpha: 1)
-            : UIColor(red: 0.937, green: 0.396, blue: 0.176, alpha: 1)
+        let token = traits.userInterfaceStyle == .dark
+            ? DesignTokens.Dark.accent
+            : DesignTokens.accent
+        return UIColor(red: token.red, green: token.green, blue: token.blue, alpha: 1)
     })
 }
 

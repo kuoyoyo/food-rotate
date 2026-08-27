@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A00000000000000000000020 /* GenerationActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* GenerationActivityAttributes.swift */; };
 		A00000000000000000000021 /* GenerationActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* GenerationActivityAttributes.swift */; };
+		A00000000000000000000032 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000031 /* DesignTokens.swift */; };
 		A00000000000000000000022 /* FoodRotateWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A00000000000000000000013 /* FoodRotateWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -48,6 +49,7 @@
 		A00000000000000000000010 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A00000000000000000000011 /* DEVLOG.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEVLOG.md; sourceTree = "<group>"; };
 		A00000000000000000000012 /* GenerationActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerationActivityAttributes.swift; sourceTree = "<group>"; };
+		A00000000000000000000031 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DesignTokens.swift; path = FoodRotate/DesignTokens.swift; sourceTree = SOURCE_ROOT; };
 		A00000000000000000000013 /* FoodRotateWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FoodRotateWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000026 /* FoodRotateTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FoodRotateTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -280,6 +282,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A00000000000000000000021 /* GenerationActivityAttributes.swift in Sources */,
+				A00000000000000000000032 /* DesignTokens.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
