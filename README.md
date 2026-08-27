@@ -20,9 +20,14 @@ iOS App，SwiftUI 寫的。**轉盤本身完全離線** —— 50 道料理內�
 
 轉完會給一張結果頁：菜名、為什麼可以吃、要注意的地方，還可以直接去找附近有賣的店。
 
-**那 50 道是什麼，可以直接看：[`docs/菜色資料庫.md`](docs/菜色資料庫.md)** ——
-每道菜的菜系、吃法、忌口標籤與優缺點全文照列，另外附一張標籤覆蓋率表。
-那份檔案是由 `foods.json` 產生的（`Tools/make-food-catalog.swift`），不是手寫的副本，
+**那 50 道是什麼，兩個地方都看得到：**
+
+| | |
+|---|---|
+| **App 裡** | 設定 → 菜色資料庫 → **內建料理**。依菜系分組，可以搜尋（菜名與標籤都比對，打「無牛」找得到 32 道），點開看單道的完整標籤與優缺點 |
+| **這裡** | [`docs/菜色資料庫.md`](docs/菜色資料庫.md) —— 50 道全文照列，另附標籤覆蓋率表。不裝 App 也看得到，而且 diff 得出來 |
+
+文件那一份是由 `foods.json` 產生的（`Tools/make-food-catalog.swift`），不是手寫的副本，
 所以不會有一份說法留在文件裡過期。
 
 ---
@@ -71,7 +76,7 @@ FoodRotate/
   DesignTokens.swift   色票與尺寸的唯一來源（不 import SwiftUI）
   Theme.swift          把 token 包成 SwiftUI 型別
 
-FoodRotateTests/       109 個單元測試（22 個 suite）
+FoodRotateTests/       116 個單元測試（23 個 suite）
 FoodRotateWidget/      桌面小工具
 Tools/make-icon.swift          App Icon 產生器，讀同一份 DesignTokens
 Tools/make-food-catalog.swift  菜色資料庫產生器，跟 App 編同一批 Core 型別
