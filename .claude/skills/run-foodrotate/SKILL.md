@@ -39,7 +39,7 @@ Xcode + command line tools（`swiftc` 要能跑，driver 會用它編一支點�
 .claude/skills/run-foodrotate/driver.sh launch      # 或 relaunch
 ```
 
-`test` 目前是 **99 tests in 21 suites**（Swift Testing，不是 XCTest，
+`test` 目前是 **109 tests in 22 suites**（Swift Testing，不是 XCTest，
 所以輸出是 `✔ Test run with N tests ... passed`，沒有 `Executed N tests`）。
 
 ## Run（agent 路徑）
@@ -114,8 +114,12 @@ Xcode 開 `FoodRotate.xcodeproj` 按 ⌘R。要看畫面用這個就好，
   （缺螢幕錄製權限）。所以校準座標不能靠 macOS 截圖，driver 是去問
   Simulator 視窗的 accessibility 樹（`AXGroup` 就是裝置畫面那一塊）。
 
-- **`DEVLOG.md:311` 提到的 `-autoSpin` 啟動參數已經不存在了。** 程式碼裡
-  沒有任何 `ProcessInfo` 讀取，別照 DEVLOG 試著用啟動參數跳到某個畫面。
+- **`-autoSpin` 與 `-startTab` 啟動參數是存在的**（2026-08-27 更正）。
+  這份文件原本寫著它們「已經不存在」，理由是「程式碼裡沒有任何 `ProcessInfo` 讀取」——
+  **那個判斷找錯 API 了**：它們讀的是 `UserDefaults.standard`
+  （`RotateView` 的 `#if DEBUG .task`、`RootView.AppTab.launchArgument`），
+  而 iOS 會把 `-key value` 形式的啟動參數自動放進 `UserDefaults`。
+  兩者都在 `#if DEBUG` 裡，所以只有 Debug 建置有。
 
 - **macOS 內建的是 bash 3.2**：`local a=$1 b="$a"` 裡的 `$a` 展開時 `a` 還沒指派。
   改 driver 時要記得分行寫。
