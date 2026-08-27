@@ -44,7 +44,30 @@ enum DesignTokens {
     // MARK: - 表面與主色
 
     /// 主色・醬。淺色模式用。
+    ///
+    /// **這不是 `AccentColor` 那一個橘。** 兩者長期都被叫成「醬」，值卻不一樣，
+    /// 差別見 `accent`。
     static let sauce = RGB(0x9B3B2C)
+
+    /// 全域主色（UIKit 的 `tintColor`／`AccentColor.colorset`）。淺色模式用。
+    ///
+    /// ## 為什麼它跟 `sauce` 是**兩個不同的值，而這不是錯**
+    ///
+    /// | | 值（淺／深） | 用在哪 | 受什麼約束 |
+    /// |---|---|---|---|
+    /// | `accent` | `#EF652D`／`#FF7A43` | UIKit 全域 tint：分頁列、系統控制項、Live Activity | 要在小面積上**看得出是這個 App 的橘** |
+    /// | `sauce` | `#9B3B2C`／`#D9674F` | 主要按鈕底、可點文字、轉盤指針 | 要**通過 AA 對比**（`onSauce` 疊上去 6.31／5.10） |
+    ///
+    /// 把它們壓成同一個值會壞掉其中一邊：`#EF652D` 配 `onSauce` 的白只有 3.2x，
+    /// 而 `#9B3B2C` 當全域 tint 在分頁列上暗到像停用。
+    /// **所以這裡要的不是「統一成一個值」，是「兩個值各只有一份」。**
+    ///
+    /// 這個 token 2026-08-27 才建立。在那之前這組數字有三份手抄本
+    /// —— `AccentColor.colorset` 的 JSON、`AccentColorTests` 的字面值、
+    /// Widget 的 `Color.brand`（那份的註解自己寫著「改一邊就要改另一邊」）。
+    /// 色票 JSON 沒辦法引用 Swift，所以它跟這裡的一致性
+    /// **由 `AccentColorTests.資產本身正確()` 釘住**，不是靠人記得。
+    static let accent = RGB(0xEF652D)
 
     enum Light {
         static let pageBackground = RGB(0xEFEAE0)
@@ -108,6 +131,9 @@ enum DesignTokens {
         /// 不是淺色那個 `sauce` 疊上去就好：`#9B3B2C` 在深卡片上對比只有 2.36，
         /// 完全不能用，所以深色需要自己的提亮版（4.64）。
         static let sauce = RGB(0xD9674F)
+
+        /// 深色模式的全域主色。見 `DesignTokens.accent` 那張表。
+        static let accent = RGB(0xFF7A43)
     }
 
     // 底色刻意帶暖偏（不是中性灰黑），跟「灶」的食材色系同一個世界。

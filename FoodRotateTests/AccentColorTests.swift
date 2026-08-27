@@ -39,33 +39,51 @@ struct AccentColorTests {
         #expect(close, "\(what) 是 \(actual)，應該是 \(expected)")
     }
 
-    /// 醬 `#EF652D`／深色版 `#FF7A43`，`AccentColor.colorset` 的兩個值。
-    private static let sauce = (0.937, 0.396, 0.176)
-    private static let sauceDark = (1.000, 0.478, 0.263)
+    /// 期待值**從 token 推導，不手貼**。
+    ///
+    /// 這三個數字以前是字面值 `(0.937, 0.396, 0.176)`，而同一組數字在專案裡有三份
+    /// 手抄本（色票 JSON、這裡、Widget 的 `Color.brand`）。改成讀 `DesignTokens.accent`
+    /// 之後，下面那條「資產本身正確」就從「驗資產有沒有被改」升級成
+    /// **把色票 JSON 與 Swift token 兩邊釘在一起**——色票沒辦法引用 Swift，
+    /// 它們的一致性只能由這支測試保證。
+    ///
+    /// 順帶更正一個用詞：這個橘**不叫「醬」**。「醬」是 `DesignTokens.sauce`
+    /// （`#9B3B2C`／`#D9674F`），是另一個值、受 AA 對比約束、用在按鈕與可點文字上。
+    /// 兩者本來就該不一樣（見 `DesignTokens.accent` 那張表），
+    /// 但長期用同一個名字叫兩個值，遲早會有人「順手統一」掉其中一個。
+    private static func components(_ rgb: DesignTokens.RGB) -> (Double, Double, Double) {
+        (rgb.red, rgb.green, rgb.blue)
+    }
 
-    @Test("UIKit 套用的全域主色是醬，不是系統藍")
+    private static let accent = components(DesignTokens.accent)
+    private static let accentDark = components(DesignTokens.Dark.accent)
+
+    @Test("UIKit 套用的全域主色是 accent，不是系統藍")
     func 全域主色沒有退回系統色() {
         // 回歸時這裡會是 (0, 0.533, 1)。看到那組數字就去找有沒有人在
         // `App.init()` 或其他 UIKit 起來之前的地方碰了 asset catalog。
-        Self.expect(Self.components(.tintColor, .light), near: Self.sauce, "淺色的全域主色")
-        Self.expect(Self.components(.tintColor, .dark), near: Self.sauceDark, "深色的全域主色")
+        Self.expect(Self.components(.tintColor, .light), near: Self.accent, "淺色的全域主色")
+        Self.expect(Self.components(.tintColor, .dark), near: Self.accentDark, "深色的全域主色")
     }
 
     @Test("實際套到 view 上的也是同一個色")
     func view的tint是同一個色() {
         // `UIColor.tintColor` 是全域值，這條確認它真的有傳到 view 層級。
-        Self.expect(Self.components(UIView().tintColor, .light), near: Self.sauce, "view 的 tint")
+        Self.expect(Self.components(UIView().tintColor, .light), near: Self.accent, "view 的 tint")
     }
 
     @Test("色票資產本身沒有被改掉")
     func 資產本身正確() {
         // 這條擋的是另一種壞法：有人直接改了 AccentColor.colorset 的值。
         // 跟上面兩條是不同的失敗模式，所以分開驗。
+        //
+        // 期待值來自 `DesignTokens.accent`，所以它同時也是**色票 JSON 與 Swift token
+        // 的同步檢查** —— 兩邊任何一邊被單獨改掉，這裡就紅。
         let asset = UIColor(named: "AccentColor")
         #expect(asset != nil, "AccentColor 資產不見了")
         if let asset {
-            Self.expect(Self.components(asset, .light), near: Self.sauce, "資產的淺色值")
-            Self.expect(Self.components(asset, .dark), near: Self.sauceDark, "資產的深色值")
+            Self.expect(Self.components(asset, .light), near: Self.accent, "資產的淺色值")
+            Self.expect(Self.components(asset, .dark), near: Self.accentDark, "資產的深色值")
         }
     }
 }
