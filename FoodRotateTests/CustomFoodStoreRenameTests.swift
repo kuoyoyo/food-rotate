@@ -112,6 +112,20 @@ struct CustomFoodStoreRenameTests {
             "自訂料理的名字以料理本身為準"
         )
     }
+
+    @Test("改過名的內建料理被排除後，排除清單要用他自己取的名字")
+    func 排除清單也要套改名() {
+        let store = Self.freshStore()
+        let builtIn = FoodLibrary.all[0]
+
+        store.rename(id: builtIn.id, to: "阿婆\(builtIn.name)")
+        store.exclude(builtIn)
+
+        // 以前只有 `pool` 套改名，`excludedBuiltIns` 沒套 —— 於是使用者在轉盤上
+        // 取的名字到了「設定 → 我的清單 → 以後都不要的」就變回原名，
+        // 他得先認出那是同一道菜才還原得了。
+        #expect(store.excludedBuiltIns.map(\.name) == ["阿婆\(builtIn.name)"])
+    }
 }
 
 /// 重啟之後改動還在（S6 P3-1 的「UserDefaults 重啟一致」）。

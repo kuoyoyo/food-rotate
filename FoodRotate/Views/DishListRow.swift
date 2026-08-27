@@ -37,13 +37,46 @@ import SwiftUI
 /// `trailing:` 打架，編譯器會警告（而且未來的 Swift 版本會直接變成錯誤）。
 /// 那個型別參數跟「左邊畫什麼」一點關係都沒有，本來就不該綁在一起。
 ///
-/// 這也是 `PROJECT_STATUS.md` 記著的 `DishListRow<EmptyView>.separatorInset`
-/// 那個彆扭讀法的同一個根：**不依賴 `Trailing` 的東西不要放進泛型型別裡。**
+/// 這跟 `DishListRowMetrics` 是同一個根：**不依賴 `Trailing` 的東西不要放進泛型型別裡。**
+/// 那些常數 2026-08-27 一併搬出去了，所以現在這條規則在這個檔案裡是一致的 ——
+/// 兩個不依賴 `Trailing` 的東西都在型別外面。
 enum DishRowArt: Equatable {
     /// 使用者自己挑的 emoji。**不要替他換掉。**
     case emoji(String)
     /// 我們的線稿圖示，跟轉盤與候選清單同一套。
     case icon(FoodIcon)
+}
+
+/// 這兩頁的列幾何。
+///
+/// **放在 `DishListRow` 外面，跟 `DishRowArt` 同一個理由：不依賴 `Trailing` 的東西
+/// 不要放進泛型型別裡。** 放在裡面的時候，光是要讀一個常數就得寫成
+/// `DishListRow<EmptyView>.separatorInset` —— 隨便填一個跟這個數字毫無關係的型別參數，
+/// 只為了把泛型型別具體化。`PROJECT_STATUS.md` 把那個讀法記成「彆扭」記了很久，
+/// 但它跟 `DishRowArt` 當初那個「未來的 Swift 版本會是錯誤」的警告是**同一個根**。
+///
+/// 純幾何、跟畫面狀態無關，所以整個 enum 是 `nonisolated`：
+/// `View` 是 `@MainActor`，型別裡的 static 屬性會跟著繼承那個隔離，而
+/// `alignmentGuide` 的 closure 是 `@Sendable`（版面計算不保證在主執行緒），
+/// 於是「從 Sendable closure 讀 main actor 屬性」會變成警告。
+/// 真正的答案不是把 closure 搬到主執行緒，是**這兩個常數本來就不需要主執行緒**。
+///
+/// 搬出來之後也不必再是 computed —— 泛型型別不能有 static 儲存屬性，這個 enum 可以。
+nonisolated enum DishListRowMetrics {
+    /// 左邊那一格佔的寬度。分隔線的縮排要對齊它的右緣，所以是一個具名常數。
+    ///
+    /// **emoji 與線稿共用同一個寬度**，兩頁的分隔線縮排才會一致 ——
+    /// 線稿本身只畫 24pt（跟候選清單同尺寸），置中放在這 32pt 的格子裡。
+    static let artWidth: CGFloat = 32
+
+    /// 線稿本身畫多大。跟候選清單那一份同尺寸。
+    static let iconSize: CGFloat = 24
+
+    /// 分隔線該縮排多少 —— 左內距 + 左邊那一格 + 兩者之間的間隔。
+    static let separatorInset: CGFloat = Theme.space12 + artWidth + Theme.space12
+
+    /// 一列最矮多高。56 而不是候選清單的 44：這裡的列有兩行（菜名 + 說明）。
+    static let minHeight: CGFloat = 56
 }
 
 struct DishListRow<Trailing: View>: View {
@@ -58,23 +91,6 @@ struct DishListRow<Trailing: View>: View {
     @ViewBuilder let trailing: Trailing
 
     @Environment(\.colorScheme) private var colorScheme
-
-    // 這兩個是**純幾何數字**，跟畫面狀態無關，所以標 `nonisolated`。
-    //
-    // `View` 是 `@MainActor`，型別裡的 static 屬性會跟著繼承那個隔離；
-    // 但 `alignmentGuide` 的 closure 是 `@Sendable`（版面計算不保證在主執行緒），
-    // 於是「從 Sendable closure 讀 main actor 屬性」變成警告。
-    // 真正的答案不是把 closure 搬到主執行緒，是**這兩個常數本來就不需要主執行緒**。
-    //
-    // 之所以是 computed 而不是 `static let`：泛型型別不能有 static 儲存屬性。
-
-    /// 左邊那一格佔的寬度。分隔線的縮排要對齊它的右緣，所以是一個具名常數。
-    ///
-    /// **emoji 與線稿共用同一個寬度**，兩頁的分隔線縮排才會一致 ——
-    /// 線稿本身只畫 24pt（跟候選清單同尺寸），置中放在這 32pt 的格子裡。
-    nonisolated static var artWidth: CGFloat { 32 }
-    /// 分隔線該縮排多少 —— 左內距 + 左邊那一格 + 兩者之間的間隔。
-    nonisolated static var separatorInset: CGFloat { Theme.space12 + artWidth + Theme.space12 }
 
     init(
         art: DishRowArt,
@@ -119,8 +135,7 @@ struct DishListRow<Trailing: View>: View {
             trailing
         }
         .padding(.horizontal, Theme.space12)
-        // 56 而不是候選清單的 44：這裡的列有兩行（菜名 + 說明）。
-        .frame(minHeight: 56)
+        .frame(minHeight: DishListRowMetrics.minHeight)
         .contentShape(Rectangle())
     }
 
@@ -131,16 +146,16 @@ struct DishListRow<Trailing: View>: View {
         case .emoji(let emoji):
             Text(emoji)
                 .font(.system(size: 28))
-                .frame(width: Self.artWidth)
+                .frame(width: DishListRowMetrics.artWidth)
         case .icon(let icon):
-            // 24pt 跟候選清單那一份同尺寸，走 `textSecondary` ——
-            // 這裡的圖示是輔助資訊，不該比菜名重（跟 `FoodRow` 同一條）。
+            // 走 `textSecondary` —— 這裡的圖示是輔助資訊，不該比菜名重
+            //（跟 `FoodRow` 同一條）。
             Image(icon.assetName)
                 .renderingMode(.template)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 24, height: 24)
-                .frame(width: Self.artWidth)
+                .frame(width: DishListRowMetrics.iconSize, height: DishListRowMetrics.iconSize)
+                .frame(width: DishListRowMetrics.artWidth)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 // 類型資訊由旁邊的 `TagBadge` 用文字講，這裡不必再報一次。
                 .accessibilityHidden(true)
@@ -172,7 +187,7 @@ extension View {
             .listRowInsets(EdgeInsets())
             .listRowSeparatorTint(Theme.hairline(for: scheme))
             .alignmentGuide(.listRowSeparatorLeading) { _ in
-                DishListRow<EmptyView>.separatorInset
+                DishListRowMetrics.separatorInset
             }
     }
 

@@ -13,23 +13,33 @@ struct HistoryView: View {
     @State private var storage = HistoryStorage.shared
 
     var body: some View {
-        Group {
+        VStack(spacing: 0) {
+            // 保存壞掉的時候在這裡說一句。
+            //
+            // **非阻擋**：不是彈窗、不擋操作、正常時完全不佔位。
+            // 放在歷史頁而不是全 App，因為後果只發生在這裡 ——
+            // 提示要出現在使用者會受影響的地方，不是最顯眼的地方。
+            //
+            // ## 空清單的時候也要講
+            //
+            // 這一塊原本在 `records.isEmpty` 的 `else` 分支裡，理由是
+            // 「空清單時沒有東西會失去，所以不新增損失視窗」。**那個理由看錯了時態。**
+            // `isEphemeral` 講的不是「你剛才失去了什麼」，是「接下來存不住」——
+            // 而空歷史的人正是**下一筆就要吃虧**的那一個：他會轉第一次、以為存下來了、
+            // 關掉 App 才發現沒有。等他有紀錄了才告訴他，已經來不及了。
+            //
+            // `lastSaveFailed` 那一句在空清單時本來就不會出現（沒存過就不會失敗），
+            // 所以這裡不會多講一句不是事實的話。
+            if let notice = storage.notice {
+                InfoNotice(symbol: "exclamationmark.triangle", text: notice)
+                    .padding(.horizontal, Theme.space16)
+                    .background(Theme.pageBackground(for: colorScheme))
+            }
+
             if records.isEmpty {
                 empty
             } else {
-                VStack(spacing: 0) {
-                    // 保存壞掉的時候在這裡說一句。
-                    //
-                    // **非阻擋**：不是彈窗、不擋操作、正常時完全不佔位。
-                    // 放在歷史頁而不是全 App，因為後果只發生在這裡 ——
-                    // 提示要出現在使用者會受影響的地方，不是最顯眼的地方。
-                    if let notice = storage.notice {
-                        InfoNotice(symbol: "exclamationmark.triangle", text: notice)
-                            .padding(.horizontal, Theme.space16)
-                            .background(Theme.pageBackground(for: colorScheme))
-                    }
-                    list
-                }
+                list
             }
         }
         .navigationTitle("歷史")

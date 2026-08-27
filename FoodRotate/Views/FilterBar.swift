@@ -21,8 +21,17 @@ struct FilterBar: View {
     let searchesByKeyword: Bool
     /// 「去哪吃」才有的距離上限。nil 代表現在是「吃什麼」模式，不顯示。
     let radius: Binding<Double>?
-    /// 轉盤正在轉。轉動中不給改格數 —— 停止角度已經照現在的格數算好了，
-    /// 中途換掉會讓指針停的那一格跟結果不是同一格。
+    /// 轉盤正在轉。轉動中**這一整面都不給動** —— 格數、標籤、換一組、清除條件。
+    ///
+    /// 原本只擋格數（停止角度已經照現在的格數算好了，中途換掉會讓指針停的那一格
+    /// 跟結果不是同一格）。2026-08-27 補上標籤那幾條，因為它們的後果更難看見：
+    /// 改標籤會走 `onChange` → `model.load()` → `pick()` 換掉整份清單，於是
+    /// `spin` 收尾時 `items.first(where: { $0.id == pickedID })` 找不到人，
+    /// **那一輪轉完什麼都不會發生，而且畫面上沒有任何說明**。
+    ///
+    /// 為什麼擋在這裡而不是 `RotateViewModel`：見 `RotateViewModel.wheelSlots` 的註解 ——
+    /// 在 model 裡加 `guard !spinner.isSpinning` 會讓 `WheelSpinnerRaceTests`
+    /// 重現 P0-1 的那條路變成一支什麼都沒做的綠燈。**擋在 UI 層，model 一個字不動。**
     let isSpinning: Bool
     /// 標籤改變時呼叫。抽樣是瞬間的，所以點下去就重抽，不用等按鈕。
     let onChange: () -> Void
@@ -52,6 +61,7 @@ struct FilterBar: View {
                     noteOverride: { note(for: $0) },
                     onChange: onChange
                 )
+                .disabled(isSpinning)
 
                 if !filter.isEmpty {
                     Button {
@@ -64,6 +74,8 @@ struct FilterBar: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
+                    // 它跟點標籤是同一件事（都會 onChange 換掉清單），所以同進同出。
+                    .disabled(isSpinning)
                 }
 
                 if let radius {
@@ -124,6 +136,8 @@ struct FilterBar: View {
             }
             .buttonStyle(.bordered)
             .buttonBorderShape(.capsule)
+            // 直接換掉整份清單，症狀跟改標籤一模一樣。
+            .disabled(isSpinning)
         }
     }
 

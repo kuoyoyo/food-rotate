@@ -46,15 +46,24 @@ final class CustomFoodStore {
     var pool: [FoodItem] {
         (FoodLibrary.all + customItems)
             .filter { !excludedIDs.contains($0.id) }
-            .map { item in
-                // **自訂料理不吃覆寫。** 它的名字就在它自己身上（見 `rename`）。
-                // 舊版可能留下孤兒覆寫，這裡直接無視 —— 有兩個來源的時候，
-                // 明確指定哪一個是真的，比兩邊各讀一半好。
-                guard !item.isCustom, let newName = renamedNames[item.id] else { return item }
-                var copy = item
-                copy.name = newName
-                return copy
-            }
+            .map(applyingRename)
+    }
+
+    /// 套上使用者改過的名字。
+    ///
+    /// **抽出來成為一個具名的地方，是因為它有兩個消費者。** 以前只有 `pool` 做這件事，
+    /// `excludedBuiltIns` 沒做 —— 於是使用者在轉盤上把「牛肉麵」改成「阿婆牛肉麵」、
+    /// 再把它設成「以後都不要」，設定頁的排除清單裡列的卻是「牛肉麵」。
+    /// 他要還原的時候得先認出那是同一道菜。
+    ///
+    /// **自訂料理不吃覆寫。** 它的名字就在它自己身上（見 `rename`）。
+    /// 舊版可能留下孤兒覆寫，這裡直接無視 —— 有兩個來源的時候，
+    /// 明確指定哪一個是真的，比兩邊各讀一半好。
+    private func applyingRename(_ item: FoodItem) -> FoodItem {
+        guard !item.isCustom, let newName = renamedNames[item.id] else { return item }
+        var copy = item
+        copy.name = newName
+        return copy
     }
 
     /// 使用者動過的東西有幾件。設定頁用它決定要不要顯示「還原成預設」。
@@ -163,8 +172,10 @@ final class CustomFoodStore {
     }
 
     /// 被排除的內建料理，給設定頁列出來還原用。
+    ///
+    /// **要套改名**：使用者是照他自己取的名字認這道菜的（見 `applyingRename`）。
     var excludedBuiltIns: [FoodItem] {
-        FoodLibrary.all.filter { excludedIDs.contains($0.id) }
+        FoodLibrary.all.filter { excludedIDs.contains($0.id) }.map(applyingRename)
     }
 
     // MARK: - 儲存
