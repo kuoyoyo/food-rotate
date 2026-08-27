@@ -178,6 +178,18 @@ final class CustomFoodStore {
         FoodLibrary.all.filter { excludedIDs.contains($0.id) }.map(applyingRename)
     }
 
+    /// 內建的全部料理，給「內建料理」那一頁瀏覽用。
+    ///
+    /// **不扣掉排除的**，跟 `pool` 的差別就在這裡：`pool` 回答「現在抽得到什麼」，
+    /// 這個回答「這個 App 內建了什麼」。被設成「以後都不要」的那幾道仍然是內建的一員，
+    /// 它們的去留是使用者的決定，那件事屬於「我的清單」那一頁。
+    ///
+    /// **但要套改名。** 他改過名字之後，那道菜在他這裡就叫那個名字了 ——
+    /// 這一頁要能讓他用自己的說法找到它（見 `applyingRename`）。
+    var builtIns: [FoodItem] {
+        FoodLibrary.all.map(applyingRename)
+    }
+
     // MARK: - 儲存
 
     private func persistItems() { encode(customItems, forKey: Key.items) }

@@ -81,13 +81,37 @@ struct SettingsView: View {
                 row("我的清單", value: store.customizationCount == 0 ? "沒有改動" : "改了 \(store.customizationCount) 項")
             }
             row("目前可抽", value: "\(store.pool.count) 道")
-            row("內建料理", value: "\(FoodLibrary.all.count) 道・\(FoodLibrary.categories.count) 類")
+            // **這一列以前只是一個數字，點不進去。**
+            //
+            // 「內建料理 50 道・12 類」講得出數量、看不到內容 —— 使用者只能靠轉盤
+            // 一次抽 8 道去猜裡面有什麼。那跟死按鈕是同一種病的另一面：
+            // 畫面上有一個承諾，背後沒有東西接。
+            //
+            // 菜系數用 `cuisineCount` 而不是 `FoodLibrary.categories.count`：
+            // 後者數的是 `category` 欄位的相異值，而那個欄位混了「輕食」「鍋物」
+            // 兩個吃法值（2026-08-11 裁示不動的既有狀況），所以它會數成 12 —— 
+            // 實際的菜系是 10 種。這一列跟它點進去的那一頁必須是同一個數字。
+            NavigationLink {
+                FoodLibraryView()
+            } label: {
+                row("內建料理", value: "\(FoodLibrary.all.count) 道・\(cuisineCount) 種菜系")
+            }
         } header: {
             header("菜色資料庫")
         } footer: {
             footer("料理清單內建在 App 裡，完全離線、不需要網路也不會上傳任何資料。你自己加的料理也只存在這台裝置上。只有「找附近的店」會用到定位與網路。")
         }
         .listRowBackground(Theme.card(for: colorScheme))
+    }
+
+    /// 內建資料實際用到幾種菜系。
+    ///
+    /// 從標籤數，不從 `category` 數 —— 菜系的真相在標籤上
+    ///（見 `FoodItem.category` 的欄位註解：category 是拿來顯示的，tags 才是拿來查的）。
+    private var cuisineCount: Int {
+        FoodTag.Dimension.cuisine.tags
+            .filter { tag in FoodLibrary.all.contains { $0.tags.contains(tag) } }
+            .count
     }
 
     /// 標題 + 數值的一列。標題 `body`／`text`，數值 `footnote`／`textSecondary`。
