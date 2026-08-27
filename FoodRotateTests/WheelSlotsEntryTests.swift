@@ -24,6 +24,12 @@ import Testing
 struct WheelSlotsEntryTests {
 
     /// 不汙染使用者的偏好設定。`AppSettings` 是真的單例、寫真的 `UserDefaults`。
+    ///
+    /// 維持 `rethrows`（closure 哪天需要 `try` 就用得上），但**呼叫端不要寫 `try`** ——
+    /// 現在三支的 closure 都沒有 throwing 呼叫，寫了會噴
+    /// 「no calls to throwing functions occur within 'try' expression」。
+    /// 那三個警告從 S6 就在，一直沒人看到，因為 `PROJECT_STATUS.md` 的「警告 0」
+    /// 是用 `xcodebuild build` 量的 —— **那個指令根本不編測試 target**。
     private static func withRestoredSlots(_ body: (AppSettings) throws -> Void) rethrows {
         let settings = AppSettings.shared
         let original = settings.wheelSlots
@@ -32,8 +38,8 @@ struct WheelSlotsEntryTests {
     }
 
     @Test("格數調大要補滿，isShortOfSlots 不得說出一句假話")
-    func 補格之後不得再說湊不出來() throws {
-        try Self.withRestoredSlots { _ in
+    func 補格之後不得再說湊不出來() {
+        Self.withRestoredSlots { _ in
             let model = RotateViewModel()
             model.wheelSlots = 4
             model.load()
@@ -50,8 +56,8 @@ struct WheelSlotsEntryTests {
     }
 
     @Test("格數調小不重抽，但要把上一輪的中選清掉")
-    func 調小要清掉中選() throws {
-        try Self.withRestoredSlots { _ in
+    func 調小要清掉中選() {
+        Self.withRestoredSlots { _ in
             let model = RotateViewModel()
             model.wheelSlots = 12
             model.load()
@@ -72,8 +78,8 @@ struct WheelSlotsEntryTests {
     }
 
     @Test("同一個值再設一次不做任何事")
-    func 設同值不動作() throws {
-        try Self.withRestoredSlots { _ in
+    func 設同值不動作() {
+        Self.withRestoredSlots { _ in
             let model = RotateViewModel()
             model.wheelSlots = 8
             model.load()
